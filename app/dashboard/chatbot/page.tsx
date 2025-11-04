@@ -8,7 +8,23 @@ interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  timestamp: Date
+  timestamp: Date | string
+}
+
+interface ChatSession {
+  id: string
+  title: string | null
+  createdAt: string | Date
+  updatedAt: string | Date
+  messages: Array<{
+    id: string
+    role: string
+    content: string
+    createdAt: string | Date
+  }>
+  _count?: {
+    messages: number
+  }
 }
 
 export default function ChatbotPage() {
@@ -17,6 +33,10 @@ export default function ChatbotPage() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [loadingSessions, setLoadingSessions] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -26,6 +46,63 @@ export default function ChatbotPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    fetchChatSessions()
+  }, [])
+
+  const fetchChatSessions = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/chat/sessions', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const sessions = await response.json()
+        setChatSessions(sessions)
+      }
+    } catch (error) {
+      console.error('Error fetching chat sessions:', error)
+    } finally {
+      setLoadingSessions(false)
+    }
+  }
+
+  const loadSession = async (sessionId: string) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/chat/sessions/${sessionId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (!response.ok) throw new Error('Failed to load session')
+
+      const session = await response.json()
+      setCurrentSessionId(session.id)
+      setMessages(
+        session.messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.createdAt),
+        }))
+      )
+      setIsSidebarOpen(false) // Close sidebar on mobile after selecting
+    } catch (error) {
+      toast.error(language === 'pl' ? 'Błąd podczas ładowania rozmowy' : 'Error loading chat')
+      console.error(error)
+    }
+  }
+
+  const startNewChat = () => {
+    setMessages([])
+    setCurrentSessionId(null)
+    setSelectedFile(null)
+    setIsSidebarOpen(false) // Close sidebar on mobile
+  }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -59,6 +136,9 @@ export default function ChatbotPage() {
       const formData = new FormData()
       formData.append('message', input)
       formData.append('language', language) // Use language from context
+      if (currentSessionId) {
+        formData.append('sessionId', currentSessionId)
+      }
       if (selectedFile) {
         formData.append('file', selectedFile)
       }
@@ -83,6 +163,14 @@ export default function ChatbotPage() {
       }
 
       setMessages((prev) => [...prev, assistantMessage])
+      
+      // Update session ID if this is a new session
+      if (data.sessionId && !currentSessionId) {
+        setCurrentSessionId(data.sessionId)
+      }
+      
+      // Refresh sessions list
+      fetchChatSessions()
     } catch (error) {
       toast.error(language === 'pl' ? 'Błąd podczas wysyłania wiadomości' : 'Error sending message')
       console.error(error)
@@ -140,6 +228,9 @@ export default function ChatbotPage() {
       send: { pl: 'Wyślij', en: 'Send' },
       typeMessage: { pl: 'Wpisz wiadomość...', en: 'Type a message...' },
       newChat: { pl: 'Nowa rozmowa', en: 'New Chat' },
+      pastChats: { pl: 'Poprzednie rozmowy', en: 'Past Chats' },
+      noChats: { pl: 'Brak poprzednich rozmów', en: 'No past chats' },
+      loading: { pl: 'Ładowanie...', en: 'Loading...' },
     }
     return translations[key]?.[language] || key
   }
@@ -155,15 +246,74 @@ export default function ChatbotPage() {
               : 'Chat with AI, analyze documents, and create new documents'}
           </p>
         </div>
-        <button
-          onClick={() => setMessages([])}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-        >
-          {t('newChat')}
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 lg:hidden"
+          >
+            {isSidebarOpen ? '✕' : '☰'}
+          </button>
+          <button
+            onClick={startNewChat}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+          >
+            {t('newChat')}
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg h-[600px] flex flex-col">
+      <div className="flex gap-4 h-[600px]">
+        {/* Sidebar */}
+        <div
+          className={`${
+            isSidebarOpen ? 'block' : 'hidden'
+          } lg:block w-64 bg-white shadow rounded-lg p-4 overflow-y-auto`}
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            {t('pastChats')}
+          </h2>
+          {loadingSessions ? (
+            <div className="text-center text-gray-500 py-8">
+              {t('loading')}
+            </div>
+          ) : chatSessions.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              {t('noChats')}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {chatSessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => loadSession(session.id)}
+                  className={`w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors ${
+                    currentSessionId === session.id
+                      ? 'bg-primary-50 border-2 border-primary-500'
+                      : 'border-2 border-transparent'
+                  }`}
+                >
+                  <div className="font-medium text-sm text-gray-900 truncate">
+                    {session.title ||
+                      session.messages[0]?.content?.substring(0, 30) ||
+                      'New Chat'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(session.updatedAt).toLocaleDateString()}
+                  </div>
+                  {session._count && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      {session._count.messages}{' '}
+                      {language === 'pl' ? 'wiadomości' : 'messages'}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 bg-white shadow rounded-lg flex flex-col">
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length === 0 && (
@@ -253,6 +403,7 @@ export default function ChatbotPage() {
               {t('createDocument')}
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -28,17 +28,40 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
 
   useEffect(() => {
-    // TODO: Fetch from API
-    const mockData = {
-      documentsGenerated: [5, 8, 12, 15, 10, 18, 20],
-      documentsUploaded: [10, 15, 20, 18, 22, 25, 30],
-      documentsAnalyzed: [8, 12, 15, 18, 20, 22, 25],
-      aiUsageTime: [120, 180, 240, 200, 280, 320, 350],
-      productivity: [75, 80, 85, 82, 88, 90, 92],
-      accuracy: [85, 87, 89, 88, 90, 91, 92],
-      dates: ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nie'],
+    const fetchAnalytics = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`/api/analytics?timeRange=${timeRange}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData({
+          documentsGenerated: result.documentsGenerated || [],
+          documentsUploaded: result.documentsUploaded || [],
+          documentsAnalyzed: result.documentsAnalyzed || [],
+          aiUsageTime: result.aiUsageTime || [],
+          productivity: result.productivity || [],
+          accuracy: result.accuracy || [],
+          dates: result.dates || [],
+        })
+      } catch (error) {
+        console.error('Error fetching analytics:', error)
+        // Fallback to empty data
+        setData({
+          documentsGenerated: [],
+          documentsUploaded: [],
+          documentsAnalyzed: [],
+          aiUsageTime: [],
+          productivity: [],
+          accuracy: [],
+          dates: [],
+        })
+      }
     }
-    setData(mockData)
+    fetchAnalytics()
   }, [timeRange])
 
   const chartData = data.dates.map((date, index) => ({
@@ -103,7 +126,7 @@ export default function AnalyticsPage() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">{t('documentsGenerated')}</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {data.documentsGenerated.reduce((a, b) => a + b, 0)}
+                    {data.documentsGenerated.reduce((a: number, b: number) => a + b, 0)}
                   </dd>
                 </dl>
               </div>
@@ -123,7 +146,7 @@ export default function AnalyticsPage() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">{t('documentsUploaded')}</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {data.documentsUploaded.reduce((a, b) => a + b, 0)}
+                    {data.documentsUploaded.reduce((a: number, b: number) => a + b, 0)}
                   </dd>
                 </dl>
               </div>
@@ -143,7 +166,7 @@ export default function AnalyticsPage() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">{t('documentsAnalyzed')}</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {data.documentsAnalyzed.reduce((a, b) => a + b, 0)}
+                    {data.documentsAnalyzed.reduce((a: number, b: number) => a + b, 0)}
                   </dd>
                 </dl>
               </div>
@@ -163,7 +186,7 @@ export default function AnalyticsPage() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">{t('aiUsageTime')}</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {Math.round(data.aiUsageTime.reduce((a, b) => a + b, 0) / 60)}h
+                    {Math.round(data.aiUsageTime.reduce((a: number, b: number) => a + b, 0))} min
                   </dd>
                 </dl>
               </div>
