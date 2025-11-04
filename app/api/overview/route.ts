@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     // Group by month
     const monthlyProductivity: Record<string, number> = {}
-    monthlyDocs.forEach((doc) => {
+    monthlyDocs.forEach((doc: { uploadedAt: Date; _count: number }) => {
       const month = new Date(doc.uploadedAt).toLocaleDateString('pl-PL', {
         month: 'short',
       })
