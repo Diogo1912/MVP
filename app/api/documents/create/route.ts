@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth(request)
-    const { prompt, language = user.language || 'pl' } = await request.json()
+    const { prompt, language = (user.language as 'pl' | 'en') || 'pl' } = await request.json()
 
     const systemPrompt = language === 'pl'
       ? 'Jesteś ekspertem prawnym. Stwórz profesjonalny dokument prawny na podstawie podanego opisu. Dokument powinien być sformatowany i gotowy do użycia.'

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     
     const formData = await request.formData()
     const message = formData.get('message') as string
-    const language = (formData.get('language') as 'pl' | 'en') || user.language || 'pl'
+    const language = (formData.get('language') as 'pl' | 'en') || (user.language as 'pl' | 'en') || 'pl'
     const file = formData.get('file') as File | null
     const sessionId = formData.get('sessionId') as string | null
 

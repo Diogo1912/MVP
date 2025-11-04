@@ -30,7 +30,7 @@ export async function POST(
 
     const documentContent = document.content || ''
 
-    const analysis = await analyzeDocument(documentContent, 'summary', user.language || 'pl')
+    const analysis = await analyzeDocument(documentContent, 'summary', (user.language as 'pl' | 'en') || 'pl')
 
     // Save analysis to database
     await prisma.aIAnalysis.create({
