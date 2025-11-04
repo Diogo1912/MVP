@@ -95,12 +95,12 @@ export async function GET(request: NextRequest) {
       activeCases,
       documentsThisMonth,
       aiUsageTime: Math.floor(aiUsageTime / 60), // Convert to minutes
-      documentTypes: documentTypes.map((dt) => ({
+      documentTypes: documentTypes.map((dt: { fileType: string; _count: number }) => ({
         type: dt.fileType,
         count: dt._count,
       })),
       monthlyProductivity: Object.entries(monthlyProductivity).map(
-        ([month, count]) => ({
+        ([month, count]: [string, number]) => ({
           month,
           count,
         })
