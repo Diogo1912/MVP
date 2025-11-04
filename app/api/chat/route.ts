@@ -61,7 +61,6 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now()
     let response: string
     let documentContent: string | null = null
-    let documentId: string | null = null
 
     if (shouldCreateDocument) {
       // Create document using the document creation logic
