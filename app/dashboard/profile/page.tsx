@@ -19,13 +19,28 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    // TODO: Fetch from API
-    setProfile({
-      name: 'Jan Kowalski',
-      email: 'jan.kowalski@example.com',
-      language: 'pl',
-    })
-    setLoading(false)
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch('/api/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setProfile({
+          name: result.name || '',
+          email: result.email || '',
+          language: result.language || 'pl',
+        })
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
   }, [])
 
   const handleSave = async (e: React.FormEvent) => {
@@ -33,9 +48,13 @@ export default function ProfilePage() {
     setSaving(true)
 
     try {
+      const token = localStorage.getItem('token')
       const response = await fetch('/api/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(profile),
       })
 

@@ -54,6 +54,7 @@ export default function ChatbotPage() {
     setIsLoading(true)
 
     try {
+      const token = localStorage.getItem('token')
       const formData = new FormData()
       formData.append('message', input)
       formData.append('language', language)
@@ -63,6 +64,9 @@ export default function ChatbotPage() {
 
       const response = await fetch('/api/chat', {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       })
 
@@ -94,9 +98,13 @@ export default function ChatbotPage() {
 
     setIsLoading(true)
     try {
+      const token = localStorage.getItem('token')
       const response = await fetch('/api/documents/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ prompt: input, language }),
       })
 

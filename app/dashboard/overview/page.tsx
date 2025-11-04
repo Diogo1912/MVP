@@ -28,29 +28,21 @@ export default function OverviewPage() {
   const [language, setLanguage] = useState<'pl' | 'en'>('pl')
 
   useEffect(() => {
-    // TODO: Fetch real data from API
-    // For now, using mock data
-    setData({
-      totalCases: 24,
-      totalDocuments: 156,
-      activeCases: 12,
-      documentsThisMonth: 32,
-      aiUsageTime: 1240, // in minutes
-      documentTypes: [
-        { type: 'Umowy', count: 45 },
-        { type: 'Pisma', count: 38 },
-        { type: 'Wyroki', count: 28 },
-        { type: 'Inne', count: 45 },
-      ],
-      monthlyProductivity: [
-        { month: 'Sty', count: 12 },
-        { month: 'Lut', count: 18 },
-        { month: 'Mar', count: 24 },
-        { month: 'Kwi', count: 28 },
-        { month: 'Maj', count: 32 },
-        { month: 'Cze', count: 42 },
-      ],
-    })
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/overview', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        })
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData(result)
+      } catch (error) {
+        console.error('Error fetching overview:', error)
+      }
+    }
+    fetchData()
   }, [])
 
   const t = (key: string) => {

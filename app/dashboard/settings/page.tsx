@@ -14,7 +14,13 @@ export default function SettingsPage() {
   const handleExportData = async () => {
     setIsExporting(true)
     try {
-      const response = await fetch('/api/settings/export-data', { method: 'POST' })
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/settings/export-data', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       if (!response.ok) throw new Error('Export failed')
 
       const blob = await response.blob()
@@ -44,7 +50,13 @@ export default function SettingsPage() {
 
     setIsDeleting(true)
     try {
-      const response = await fetch('/api/settings/delete-data', { method: 'POST' })
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/settings/delete-data', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       if (!response.ok) throw new Error('Deletion failed')
 
       toast.success(language === 'pl' ? 'Dane usunięte pomyślnie' : 'Data deleted successfully')
@@ -70,9 +82,13 @@ export default function SettingsPage() {
     }
 
     try {
+      const token = localStorage.getItem('token')
       const response = await fetch('/api/settings/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ currentPassword, newPassword }),
       })
 

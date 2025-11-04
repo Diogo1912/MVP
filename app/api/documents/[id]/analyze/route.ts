@@ -1,34 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { analyzeDocument } from '@/lib/openai'
+import { requireAuth } from '@/lib/auth-middleware'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // TODO: Get document from database
-    // const document = await prisma.document.findUnique({
-    //   where: { id: params.id },
-    // })
+    const user = await requireAuth(request)
+    
+    const document = await prisma.document.findUnique({
+      where: { id: params.id },
+    })
 
-    // For now, using mock content
-    const documentContent = 'Mock document content for analysis'
+    if (!document) {
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      )
+    }
 
-    const analysis = await analyzeDocument(documentContent, 'summary', 'pl')
+    if (document.userId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
 
-    // TODO: Save analysis to database
-    // await prisma.aIAnalysis.create({
-    //   data: {
-    //     documentId: params.id,
-    //     analysisType: 'summary',
-    //     content: analysis,
-    //   },
-    // })
+    const documentContent = document.content || ''
+
+    const analysis = await analyzeDocument(documentContent, 'summary', user.language || 'pl')
+
+    // Save analysis to database
+    await prisma.aIAnalysis.create({
+      data: {
+        documentId: document.id,
+        analysisType: 'summary',
+        content: analysis,
+      },
+    })
+
+    // Update analytics
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    await prisma.analytics.upsert({
+      where: {
+        userId_date: {
+          userId: user.id,
+          date: today,
+        },
+      },
+      create: {
+        userId: user.id,
+        date: today,
+        documentsAnalyzed: 1,
+      },
+      update: {
+        documentsAnalyzed: {
+          increment: 1,
+        },
+      },
+    })
 
     return NextResponse.json({ analysis })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Analysis error:', error)
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     return NextResponse.json(
       { error: 'Failed to analyze document' },
       { status: 500 }

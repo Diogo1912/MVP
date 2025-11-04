@@ -1,28 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-// import { getUserFromToken } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-middleware'
 
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Get user from token
-    // const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    // const user = await getUserFromToken(token || '')
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    const user = await requireAuth(request)
 
-    // TODO: Fetch all user data
-    // const userData = {
-    //   user: await prisma.user.findUnique({ where: { id: user.id } }),
-    //   documents: await prisma.document.findMany({ where: { userId: user.id } }),
-    //   cases: await prisma.case.findMany({ where: { userId: user.id } }),
-    //   chatSessions: await prisma.chatSession.findMany({ where: { userId: user.id } }),
-    //   analytics: await prisma.analytics.findMany({ where: { userId: user.id } }),
-    // }
-
-    // Mock data for now
     const userData = {
-      message: 'Data export feature - implement with real user data',
+      user: await prisma.user.findUnique({ 
+        where: { id: user.id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          language: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      documents: await prisma.document.findMany({ 
+        where: { userId: user.id },
+        select: {
+          id: true,
+          title: true,
+          fileType: true,
+          priority: true,
+          status: true,
+          uploadedAt: true,
+          updatedAt: true,
+        },
+      }),
+      cases: await prisma.case.findMany({ 
+        where: { userId: user.id },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          caseNumber: true,
+          priority: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      chatSessions: await prisma.chatSession.findMany({ 
+        where: { userId: user.id },
+        include: {
+          messages: {
+            select: {
+              role: true,
+              content: true,
+              createdAt: true,
+            },
+          },
+        },
+      }),
+      analytics: await prisma.analytics.findMany({ 
+        where: { userId: user.id },
+      }),
+      exportedAt: new Date().toISOString(),
     }
 
     return NextResponse.json(userData, {
@@ -31,8 +67,11 @@ export async function POST(request: NextRequest) {
         'Content-Disposition': `attachment; filename="golexai-data-export-${Date.now()}.json"`,
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Export data error:', error)
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     return NextResponse.json(
       { error: 'Failed to export data' },
       { status: 500 }

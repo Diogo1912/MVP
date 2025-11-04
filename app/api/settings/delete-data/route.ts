@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-// import { getUserFromToken } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-middleware'
 
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Get user from token
-    // const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    // const user = await getUserFromToken(token || '')
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    const user = await requireAuth(request)
 
-    // TODO: Delete all user data (CASCADE should handle related records)
-    // await prisma.user.delete({
-    //   where: { id: user.id },
-    // })
+    // Delete all user data (CASCADE will handle related records)
+    await prisma.user.delete({
+      where: { id: user.id },
+    })
 
     return NextResponse.json({ message: 'Data deleted successfully' })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete data error:', error)
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     return NextResponse.json(
       { error: 'Failed to delete data' },
       { status: 500 }

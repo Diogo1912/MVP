@@ -1,36 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createDocx, createPdf } from '@/lib/document-handler'
+import { requireAuth } from '@/lib/auth-middleware'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const user = await requireAuth(request)
     const { searchParams } = new URL(request.url)
     const format = searchParams.get('format') || 'docx'
 
-    // TODO: Get document from database
-    // const document = await prisma.document.findUnique({
-    //   where: { id: params.id },
-    // })
+    const document = await prisma.document.findUnique({
+      where: { id: params.id },
+    })
 
-    // For now, using mock content
-    const content = 'Mock document content'
+    if (!document) {
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      )
+    }
+
+    if (document.userId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
+
+    const content = document.content || ''
 
     let buffer: Buffer
     let contentType: string
     let filename: string
 
     if (format === 'pdf') {
-      buffer = createPdf(content, `document-${params.id}.pdf`)
+      buffer = createPdf(content, `${document.title}.pdf`)
       contentType = 'application/pdf'
-      filename = `document-${params.id}.pdf`
+      filename = `${document.title}.pdf`
     } else {
-      buffer = await createDocx(content, `document-${params.id}.docx`)
+      buffer = await createDocx(content, `${document.title}.docx`)
       contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      filename = `document-${params.id}.docx`
+      filename = `${document.title}.docx`
     }
+
+    // Record export
+    await prisma.documentExport.create({
+      data: {
+        documentId: document.id,
+        exportType: format as 'docx' | 'pdf',
+        filePath: filename,
+      },
+    })
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
@@ -38,8 +61,14 @@ export async function GET(
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Export error:', error)
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     return NextResponse.json(
       { error: 'Failed to export document' },
       { status: 500 }

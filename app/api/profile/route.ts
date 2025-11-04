@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-// import { getUserFromToken } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-middleware'
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Get user from token
-    // const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    // const user = await getUserFromToken(token || '')
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    const user = await requireAuth(request)
 
-    // return NextResponse.json(user)
-    return NextResponse.json({ message: 'Profile API - implement with real user data' })
-  } catch (error) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        language: true,
+        createdAt: true,
+      },
+    })
+
+    return NextResponse.json(dbUser)
+  } catch (error: any) {
     console.error('Get profile error:', error)
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     return NextResponse.json(
       { error: 'Failed to get profile' },
       { status: 500 }
@@ -24,25 +32,30 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const user = await requireAuth(request)
     const { name, email, language } = await request.json()
 
-    // TODO: Get user from token
-    // const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    // const user = await getUserFromToken(token || '')
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { 
+        name: name || undefined,
+        email: email || undefined,
+        language: language || undefined,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        language: true,
+      },
+    })
 
-    // TODO: Update user profile
-    // const updatedUser = await prisma.user.update({
-    //   where: { id: user.id },
-    //   data: { name, email, language },
-    // })
-
-    // return NextResponse.json(updatedUser)
-    return NextResponse.json({ message: 'Profile updated - implement with real user data' })
-  } catch (error) {
+    return NextResponse.json(updatedUser)
+  } catch (error: any) {
     console.error('Update profile error:', error)
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     return NextResponse.json(
       { error: 'Failed to update profile' },
       { status: 500 }

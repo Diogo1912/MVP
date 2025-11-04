@@ -9,8 +9,10 @@ interface Document {
   fileType: string
   priority: string
   status: string
-  uploadedAt: string
-  caseNumber?: string
+  uploadedAt: string | Date
+  case?: {
+    caseNumber?: string
+  }
 }
 
 export default function DocumentsPage() {
@@ -21,33 +23,38 @@ export default function DocumentsPage() {
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'title'>('date')
 
   useEffect(() => {
-    // TODO: Fetch from API
-    setDocuments([
-      {
-        id: '1',
-        title: 'Umowa o pracę - Jan Kowalski',
-        fileType: 'docx',
-        priority: 'high',
-        status: 'active',
-        uploadedAt: '2024-01-15',
-        caseNumber: 'SPR-2024-001',
-      },
-      {
-        id: '2',
-        title: 'Pismo procesowe - sprawa cywilna',
-        fileType: 'pdf',
-        priority: 'urgent',
-        status: 'active',
-        uploadedAt: '2024-01-14',
-        caseNumber: 'SPR-2024-002',
-      },
-    ])
-    setLoading(false)
-  }, [])
+    const fetchDocuments = async () => {
+      try {
+        const params = new URLSearchParams()
+        if (filter !== 'all') params.append('filter', filter)
+        params.append('sortBy', sortBy)
+        
+        const response = await fetch(`/api/documents?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        })
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setDocuments(result)
+      } catch (error) {
+        console.error('Error fetching documents:', error)
+        toast.error(language === 'pl' ? 'Błąd podczas ładowania dokumentów' : 'Error loading documents')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDocuments()
+  }, [filter, sortBy])
 
   const handleExport = async (docId: string, format: 'docx' | 'pdf') => {
     try {
-      const response = await fetch(`/api/documents/${docId}/export?format=${format}`)
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/documents/${docId}/export?format=${format}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       if (!response.ok) throw new Error('Export failed')
 
       const blob = await response.blob()
@@ -68,7 +75,13 @@ export default function DocumentsPage() {
 
   const handleAnalyze = async (docId: string) => {
     try {
-      const response = await fetch(`/api/documents/${docId}/analyze`, { method: 'POST' })
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/documents/${docId}/analyze`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       if (!response.ok) throw new Error('Analysis failed')
 
       const data = await response.json()
@@ -186,7 +199,7 @@ export default function DocumentsPage() {
                   <div className="text-sm text-gray-500">{doc.fileType.toUpperCase()}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {doc.caseNumber || '-'}
+                  {doc.case?.caseNumber || '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityColor(doc.priority)}`}>
@@ -197,7 +210,7 @@ export default function DocumentsPage() {
                   {doc.status}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(doc.uploadedAt).toLocaleDateString()}
+                  {new Date(doc.uploadedAt as string).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
