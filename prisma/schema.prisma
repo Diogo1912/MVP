@@ -47,6 +47,7 @@ model Document {
   
   aiAnalysis    AIAnalysis[]
   exports       DocumentExport[]
+  chatMessages  ChatMessage[]
   
   @@map("documents")
 }
