@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
       response, 
       sessionId: session.id,
       documentCreated: shouldCreateDocument,
-      documentId: documentId,
+      documentId: shouldCreateDocument ? documentId : null,
       documentContent: documentContent,
     })
   } catch (error: any) {
