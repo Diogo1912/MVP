@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { useLanguage } from '@/lib/language-context'
 
 interface UserProfile {
   name: string
@@ -10,10 +11,11 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  const { language: contextLanguage, setLanguage: setContextLanguage } = useLanguage()
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     email: '',
-    language: 'pl',
+    language: contextLanguage,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -59,6 +61,11 @@ export default function ProfilePage() {
       })
 
       if (!response.ok) throw new Error('Save failed')
+
+      // Update context language if user changed their language preference
+      if (profile.language !== contextLanguage) {
+        setContextLanguage(profile.language)
+      }
 
       toast.success(profile.language === 'pl' ? 'Profil zaktualizowany' : 'Profile updated')
     } catch (error) {

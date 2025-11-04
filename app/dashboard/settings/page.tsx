@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import { useLanguage } from '@/lib/language-context'
 
 export default function SettingsPage() {
-  const [language, setLanguage] = useState<'pl' | 'en'>('pl')
+  const { language } = useLanguage()
   const [isExporting, setIsExporting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')

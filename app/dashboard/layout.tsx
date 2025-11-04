@@ -2,7 +2,8 @@
 
 import DashboardLayout from '@/components/DashboardLayout'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { useState } from 'react'
+import { LanguageProvider } from '@/lib/language-context'
+import { useState, useEffect } from 'react'
 
 export default function DashboardLayoutWrapper({
   children,
@@ -11,11 +12,25 @@ export default function DashboardLayoutWrapper({
 }) {
   const [language, setLanguage] = useState<'pl' | 'en'>('pl')
 
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as 'pl' | 'en' | null
+    if (savedLanguage === 'pl' || savedLanguage === 'en') {
+      setLanguage(savedLanguage)
+    }
+  }, [])
+
+  const handleLanguageChange = (lang: 'pl' | 'en') => {
+    setLanguage(lang)
+    localStorage.setItem('language', lang)
+  }
+
   return (
     <ProtectedRoute>
-      <DashboardLayout language={language} onLanguageChange={setLanguage}>
-        {children}
-      </DashboardLayout>
+      <LanguageProvider>
+        <DashboardLayout language={language} onLanguageChange={handleLanguageChange}>
+          {children}
+        </DashboardLayout>
+      </LanguageProvider>
     </ProtectedRoute>
   )
 }

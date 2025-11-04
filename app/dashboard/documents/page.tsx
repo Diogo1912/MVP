@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { useLanguage } from '@/lib/language-context'
 
 interface Document {
   id: string
@@ -16,9 +17,9 @@ interface Document {
 }
 
 export default function DocumentsPage() {
+  const { language } = useLanguage()
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
-  const [language, setLanguage] = useState<'pl' | 'en'>('pl')
   const [filter, setFilter] = useState<'all' | 'active' | 'archived'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'title'>('date')
 

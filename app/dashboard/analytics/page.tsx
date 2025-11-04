@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useLanguage } from '@/lib/language-context'
 
 interface AnalyticsData {
   documentsGenerated: number[]
@@ -14,6 +15,7 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const { language } = useLanguage()
   const [data, setData] = useState<AnalyticsData>({
     documentsGenerated: [],
     documentsUploaded: [],
@@ -23,7 +25,6 @@ export default function AnalyticsPage() {
     accuracy: [],
     dates: [],
   })
-  const [language, setLanguage] = useState<'pl' | 'en'>('pl')
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
 
   useEffect(() => {

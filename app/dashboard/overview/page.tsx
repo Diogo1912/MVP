@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { useLanguage } from '@/lib/language-context'
 
 interface OverviewData {
   totalCases: number
@@ -16,6 +17,7 @@ interface OverviewData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
 
 export default function OverviewPage() {
+  const { language } = useLanguage()
   const [data, setData] = useState<OverviewData>({
     totalCases: 0,
     totalDocuments: 0,
@@ -25,7 +27,6 @@ export default function OverviewPage() {
     documentTypes: [],
     monthlyProductivity: [],
   })
-  const [language, setLanguage] = useState<'pl' | 'en'>('pl')
 
   useEffect(() => {
     const fetchData = async () => {

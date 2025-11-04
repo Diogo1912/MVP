@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { useLanguage } from '@/lib/language-context'
 
 interface Message {
   id: string
@@ -11,10 +12,10 @@ interface Message {
 }
 
 export default function ChatbotPage() {
+  const { language } = useLanguage()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [language, setLanguage] = useState<'pl' | 'en'>('pl')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
