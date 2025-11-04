@@ -46,7 +46,7 @@ export default function DocumentsPage() {
       }
     }
     fetchDocuments()
-  }, [filter, sortBy, language])
+  }, [filter, sortBy])
 
   const handleExport = async (docId: string, format: 'docx' | 'pdf') => {
     try {

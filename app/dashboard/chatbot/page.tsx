@@ -58,7 +58,7 @@ export default function ChatbotPage() {
       const token = localStorage.getItem('token')
       const formData = new FormData()
       formData.append('message', input)
-      formData.append('language', language)
+      formData.append('language', language) // Use language from context
       if (selectedFile) {
         formData.append('file', selectedFile)
       }
@@ -106,7 +106,7 @@ export default function ChatbotPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ prompt: input, language }),
+        body: JSON.stringify({ prompt: input, language }), // Use language from context
       })
 
       if (!response.ok) throw new Error('Failed to create document')
