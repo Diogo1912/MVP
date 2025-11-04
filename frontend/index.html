@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOLEXAI - Legal AI Platform</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar" id="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h1>GOLEXAI</h1>
+                </div>
+                <div class="nav-menu">
+                    <a href="#" class="nav-link" data-section="overview" data-i18n="nav.overview">Overview</a>
+                    <a href="#" class="nav-link" data-section="chatbot" data-i18n="nav.chatbot">AI Chatbot</a>
+                    <a href="#" class="nav-link" data-section="documents" data-i18n="nav.documents">Documents</a>
+                    <a href="#" class="nav-link" data-section="analytics" data-i18n="nav.analytics">Analytics</a>
+                    <a href="#" class="nav-link" data-section="settings" data-i18n="nav.settings">Settings</a>
+                    <select id="language-selector" class="language-selector">
+                        <option value="en">EN</option>
+                        <option value="pl">PL</option>
+                    </select>
+                    <button id="logout-btn" class="btn btn-secondary" data-i18n="nav.logout">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <h1 data-i18n="login.title">Welcome to GOLEXAI</h1>
+                <p data-i18n="login.subtitle">AI-powered legal tech platform</p>
+                <button id="google-login-btn" class="btn btn-primary" data-i18n="login.google">Sign in with Google</button>
+            </div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div id="dashboard" class="screen">
+            <!-- Overview Section -->
+            <section id="overview-section" class="section active">
+                <h2 data-i18n="overview.title">Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3 data-i18n="overview.total_documents">Total Documents</h3>
+                        <p class="stat-value" id="stat-documents">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 data-i18n="overview.active_cases">Active Cases</h3>
+                        <p class="stat-value" id="stat-cases">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 data-i18n="overview.ai_queries">AI Queries</h3>
+                        <p class="stat-value" id="stat-queries">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 data-i18n="overview.monthly_productivity">Monthly Productivity</h3>
+                        <p class="stat-value" id="stat-productivity">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chatbot Section -->
+            <section id="chatbot-section" class="section">
+                <h2 data-i18n="chatbot.title">AI Chatbot</h2>
+                <div class="chat-container">
+                    <div id="chat-messages" class="chat-messages"></div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." data-i18n-placeholder="chatbot.input_placeholder">
+                        <button id="send-btn" class="btn btn-primary" data-i18n="chatbot.send">Send</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Documents Section -->
+            <section id="documents-section" class="section">
+                <h2 data-i18n="documents.title">Documents & Cases</h2>
+                <div class="documents-header">
+                    <button id="upload-doc-btn" class="btn btn-primary" data-i18n="documents.upload">Upload Document</button>
+                    <button id="create-case-btn" class="btn btn-secondary" data-i18n="documents.create_case">Create Case</button>
+                </div>
+                <div id="documents-list" class="documents-list"></div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics-section" class="section">
+                <h2 data-i18n="analytics.title">Analytics</h2>
+                <div id="analytics-content" class="analytics-content">
+                    <p data-i18n="analytics.loading">Loading analytics...</p>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings-section" class="section">
+                <h2 data-i18n="settings.title">Settings</h2>
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <h3 data-i18n="settings.gdpr">GDPR & Data Management</h3>
+                        <button id="export-data-btn" class="btn btn-secondary" data-i18n="settings.export_data">Export My Data</button>
+                        <button id="delete-data-btn" class="btn btn-danger" data-i18n="settings.delete_data">Delete My Data</button>
+                    </div>
+                    <div class="setting-group">
+                        <h3 data-i18n="settings.language">Language</h3>
+                        <select id="settings-language" class="language-selector">
+                            <option value="en">English</option>
+                            <option value="pl">Polski</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" style="display: none;" accept=".pdf,.docx">
+
+    <script src="js/i18n.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+
