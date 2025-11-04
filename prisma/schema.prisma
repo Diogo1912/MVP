@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  language      String    @default("pl") // "pl" or "en"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  documents     Document[]
+  cases         Case[]
+  chatSessions  ChatSession[]
+  analytics     Analytics[]
+  
+  @@map("users")
+}
+
+model Document {
+  id            String    @id @default(cuid())
+  title         String
+  content       String?   @db.Text
+  fileType      String    // "docx", "pdf", "txt"
+  filePath      String?
+  fileSize      Int?
+  priority      String    @default("medium") // "low", "medium", "high", "urgent"
+  status        String    @default("draft") // "draft", "active", "archived"
+  uploadedAt    DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  caseId        String?
+  case          Case?     @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  
+  aiAnalysis    AIAnalysis[]
+  exports       DocumentExport[]
+  
+  @@map("documents")
+}
+
+model Case {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?   @db.Text
+  caseNumber    String?   @unique
+  priority      String    @default("medium")
+  status        String    @default("active") // "active", "closed", "pending"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  documents     Document[]
+  
+  @@map("cases")
+}
+
+model ChatSession {
+  id            String    @id @default(cuid())
+  title         String?
+  language      String    @default("pl") // Language used for this session
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  messages      ChatMessage[]
+  
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String    @id @default(cuid())
+  role          String    // "user" or "assistant"
+  content       String    @db.Text
+  createdAt     DateTime  @default(now())
+  
+  sessionId     String
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  documentId    String?
+  document      Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  
+  @@map("chat_messages")
+}
+
+model AIAnalysis {
+  id            String    @id @default(cuid())
+  analysisType  String    // "summary", "extract", "review", etc.
+  content       String    @db.Text
+  accuracy      Float?    // 0-1 score
+  createdAt     DateTime  @default(now())
+  
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("ai_analyses")
+}
+
+model DocumentExport {
+  id            String    @id @default(cuid())
+  exportType    String    // "docx", "pdf"
+  filePath      String
+  createdAt     DateTime  @default(now())
+  
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@map("document_exports")
+}
+
+model Analytics {
+  id            String    @id @default(cuid())
+  date          DateTime  @default(now())
+  documentsGenerated Int  @default(0)
+  documentsUploaded   Int  @default(0)
+  documentsAnalyzed    Int  @default(0)
+  aiUsageTimeSeconds   Int @default(0) // Track AI usage time
+  productivityScore    Float? // Calculated productivity metric
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("analytics")
+}
+
