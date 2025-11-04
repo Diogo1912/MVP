@@ -78,12 +78,19 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
    - After build, it will run `npm start`
    - Railway will run database migrations automatically if configured
 
-5. **Run database migrations**
-   You may need to run migrations manually:
+5. **Run database migrations** ⚠️ **IMPORTANT**
+   You MUST run migrations before the app will work:
    ```bash
    # Via Railway CLI or one-off command in Railway dashboard
    npx prisma migrate deploy
    ```
+   
+   Or create initial migration locally and push:
+   ```bash
+   npx prisma migrate dev --name init
+   ```
+   
+   **Without running migrations, registration and all database operations will fail!**
 
 ### Post-Deployment
 

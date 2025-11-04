@@ -48,10 +48,26 @@ export async function POST(request: NextRequest) {
       message: 'User created successfully',
       user 
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error)
+    
+    // Provide more specific error messages
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Email already exists' },
+        { status: 400 }
+      )
+    }
+    
+    if (error.message?.includes('connect') || error.message?.includes('database')) {
+      return NextResponse.json(
+        { error: 'Database connection error. Please check your database configuration.' },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to register user' },
+      { error: error.message || 'Failed to register user' },
       { status: 500 }
     )
   }
