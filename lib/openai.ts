@@ -1,12 +1,14 @@
 import OpenAI from 'openai'
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY is not set')
+function getOpenAI(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set')
+  }
+  
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
 }
-
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function chatCompletion(
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
@@ -16,6 +18,7 @@ export async function chatCompletion(
     ? 'Jesteś pomocnym asystentem AI dla prawników. Pomagasz w analizie dokumentów, tworzeniu dokumentów prawnych i odpowiadaniu na pytania związane z prawem. Odpowiadaj zawsze po polsku.'
     : 'You are a helpful AI assistant for lawyers. You help with document analysis, creating legal documents, and answering legal questions. Always respond in English.'
 
+  const openai = getOpenAI()
   const response = await openai.chat.completions.create({
     model: 'gpt-4-turbo-preview',
     messages: [
