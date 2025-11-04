@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     })
 
     const aiUsageTime = aiUsageRecords.reduce(
-      (sum, record) => sum + record.aiUsageTimeSeconds,
+      (sum: number, record) => sum + record.aiUsageTimeSeconds,
       0
     )
 
