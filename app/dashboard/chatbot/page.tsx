@@ -339,7 +339,7 @@ export default function ChatbotPage() {
               >
                 <p className="text-sm">{message.content}</p>
                 <p className="text-xs mt-1 opacity-70">
-                  {message.timestamp.toLocaleTimeString()}
+                  {new Date(message.timestamp).toLocaleTimeString()}
                 </p>
               </div>
             </div>

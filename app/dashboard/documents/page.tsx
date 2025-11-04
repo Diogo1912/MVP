@@ -46,6 +46,7 @@ export default function DocumentsPage() {
       }
     }
     fetchDocuments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, sortBy])
 
   const handleExport = async (docId: string, format: 'docx' | 'pdf') => {
