@@ -85,7 +85,7 @@ export default function DocumentsPage() {
 
   const handleShare = async (docId: string) => {
     // TODO: Implement sharing functionality
-    toast.info(language === 'pl' ? 'Funkcja udostępniania wkrótce' : 'Sharing feature coming soon')
+    toast(language === 'pl' ? 'Funkcja udostępniania wkrótce' : 'Sharing feature coming soon')
   }
 
   const getPriorityColor = (priority: string) => {
