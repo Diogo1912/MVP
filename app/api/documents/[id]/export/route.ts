@@ -32,7 +32,7 @@ export async function GET(
       filename = `document-${params.id}.docx`
     }
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,

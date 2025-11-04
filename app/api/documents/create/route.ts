@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Create DOCX file
     const buffer = await createDocx(response, `document-${Date.now()}.docx`)
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': `attachment; filename="document-${Date.now()}.docx"`,
