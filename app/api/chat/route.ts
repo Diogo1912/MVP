@@ -40,6 +40,15 @@ export async function POST(request: NextRequest) {
       documentId = document.id
     }
 
+    // Check if user wants to create a document
+    const createDocumentKeywords = language === 'pl'
+      ? ['stwórz', 'utwórz', 'napisz', 'generuj', 'przygotuj', 'dokument', 'umowa', 'kontrakt', 'pismo', 'zapytanie', 'odpowiedź']
+      : ['create', 'generate', 'write', 'draft', 'prepare', 'document', 'contract', 'agreement', 'letter', 'motion', 'response']
+    
+    const shouldCreateDocument = createDocumentKeywords.some(keyword => 
+      message.toLowerCase().includes(keyword)
+    )
+
     const messages = [
       {
         role: 'user' as const,
@@ -50,7 +59,60 @@ export async function POST(request: NextRequest) {
     ]
 
     const startTime = Date.now()
-    const response = await chatCompletion(messages, language)
+    let response: string
+    let documentContent: string | null = null
+    let documentId: string | null = null
+
+    if (shouldCreateDocument) {
+      // Create document using the document creation logic
+      const documentPrompt = language === 'pl'
+        ? `Stwórz profesjonalny dokument prawny zgodny z polskim prawem na podstawie następującego opisu:\n\n${message}`
+        : `Create a professional legal document compliant with Polish law based on the following description:\n\n${message}`
+      
+      response = await chatCompletion([{ role: 'user', content: documentPrompt }], language)
+      documentContent = response
+
+      // Save document to database
+      const document = await prisma.document.create({
+        data: {
+          title: language === 'pl' 
+            ? `Dokument ${new Date().toLocaleDateString('pl-PL')}`
+            : `Document ${new Date().toLocaleDateString()}`,
+          content: response,
+          fileType: 'docx',
+          userId: user.id,
+          status: 'draft',
+        },
+      })
+      documentId = document.id
+
+      // Update analytics
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      await prisma.analytics.upsert({
+        where: {
+          userId_date: {
+            userId: user.id,
+            date: today,
+          },
+        },
+        create: {
+          userId: user.id,
+          date: today,
+          documentsGenerated: 1,
+        },
+        update: {
+          documentsGenerated: {
+            increment: 1,
+          },
+        },
+      })
+    } else {
+      // Regular chat response
+      response = await chatCompletion(messages, language)
+    }
+
     const usageTime = Math.floor((Date.now() - startTime) / 1000)
 
     // Get or create chat session
@@ -108,7 +170,13 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ response, sessionId: session.id })
+    return NextResponse.json({ 
+      response, 
+      sessionId: session.id,
+      documentCreated: shouldCreateDocument,
+      documentId: documentId,
+      documentContent: documentContent,
+    })
   } catch (error: any) {
     console.error('Chat API error:', error)
     if (error.message === 'Unauthorized') {

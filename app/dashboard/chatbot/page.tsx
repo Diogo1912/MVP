@@ -9,6 +9,9 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date | string
+  documentId?: string | null
+  documentContent?: string | null
+  isDocument?: boolean
 }
 
 interface ChatSession {
@@ -32,6 +35,7 @@ export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isCreatingDocument, setIsCreatingDocument] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
@@ -88,6 +92,8 @@ export default function ChatbotPage() {
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
           timestamp: new Date(msg.createdAt),
+          documentId: null, // Past messages don't have document context
+          isDocument: false,
         }))
       )
       setIsSidebarOpen(false) // Close sidebar on mobile after selecting
@@ -128,14 +134,28 @@ export default function ChatbotPage() {
     }
 
     setMessages((prev) => [...prev, userMessage])
+    const messageInput = input
     setInput('')
     setIsLoading(true)
+
+    // Check if this looks like a document creation request
+    const createKeywords = language === 'pl'
+      ? ['stwórz', 'utwórz', 'napisz', 'generuj', 'przygotuj', 'dokument', 'umowa', 'kontrakt']
+      : ['create', 'generate', 'write', 'draft', 'prepare', 'document', 'contract', 'agreement']
+    
+    const mightCreateDocument = createKeywords.some(keyword => 
+      messageInput.toLowerCase().includes(keyword)
+    )
+
+    if (mightCreateDocument) {
+      setIsCreatingDocument(true)
+    }
 
     try {
       const token = localStorage.getItem('token')
       const formData = new FormData()
-      formData.append('message', input)
-      formData.append('language', language) // Use language from context
+      formData.append('message', messageInput)
+      formData.append('language', language)
       if (currentSessionId) {
         formData.append('sessionId', currentSessionId)
       }
@@ -160,6 +180,9 @@ export default function ChatbotPage() {
         role: 'assistant',
         content: data.response,
         timestamp: new Date(),
+        documentId: data.documentId || null,
+        documentContent: data.documentContent || null,
+        isDocument: data.documentCreated || false,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -176,48 +199,48 @@ export default function ChatbotPage() {
       console.error(error)
     } finally {
       setIsLoading(false)
+      setIsCreatingDocument(false)
     }
   }
 
-  const handleCreateDocument = async () => {
-    if (!input.trim()) {
-      toast.error(language === 'pl' ? 'Wprowadź opis dokumentu do utworzenia' : 'Enter a description of the document to create')
-      return
-    }
-
-    setIsLoading(true)
+  const handleDownloadDocument = async (documentId: string, content: string) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/documents/create', {
-        method: 'POST',
+      const response = await fetch(`/api/documents/${documentId}/export?format=docx`, {
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ prompt: input, language }), // Use language from context
       })
-
-      if (!response.ok) throw new Error('Failed to create document')
-
+      
+      if (!response.ok) throw new Error('Download failed')
+      
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `document-${Date.now()}.docx`
+      a.download = `document-${documentId}.docx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-
-      toast.success(language === 'pl' ? 'Dokument utworzony pomyślnie' : 'Document created successfully')
-      setInput('')
+      
+      toast.success(language === 'pl' ? 'Dokument pobrany' : 'Document downloaded')
     } catch (error) {
-      toast.error(language === 'pl' ? 'Błąd podczas tworzenia dokumentu' : 'Error creating document')
-      console.error(error)
-    } finally {
-      setIsLoading(false)
+      toast.error(language === 'pl' ? 'Błąd podczas pobierania' : 'Error downloading')
     }
   }
+
+  const handleSaveDocument = async (documentId: string) => {
+    try {
+      // Document is already saved in database, just confirm
+      toast.success(language === 'pl' ? 'Dokument zapisany w bazie dokumentów' : 'Document saved to documents')
+      // Optionally redirect to documents page
+      // window.location.href = '/dashboard/documents'
+    } catch (error) {
+      toast.error(language === 'pl' ? 'Błąd podczas zapisywania' : 'Error saving')
+    }
+  }
+
 
   const t = (key: string) => {
     const translations: Record<string, { pl: string; en: string }> = {
@@ -347,12 +370,66 @@ export default function ChatbotPage() {
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg">
-                <p className="text-sm">
-                  {language === 'pl' ? 'Pisanie...' : 'Typing...'}
+                <p className="text-sm flex items-center space-x-2">
+                  {isCreatingDocument ? (
+                    <>
+                      <span className="animate-spin">⚙️</span>
+                      <span>{language === 'pl' ? 'Tworzenie dokumentu...' : 'Creating document...'}</span>
+                    </>
+                  ) : (
+                    <span>{language === 'pl' ? 'Pisanie...' : 'Typing...'}</span>
+                  )}
                 </p>
               </div>
             </div>
           )}
+          
+          {/* Document Preview */}
+          {messages.map((message) => {
+            if (message.isDocument && message.documentContent && message.documentId) {
+              return (
+                <div key={`doc-${message.id}`} className="flex justify-start mb-4">
+                  <div className="max-w-2xl bg-white border-2 border-primary-200 rounded-lg p-4 shadow-md">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-900">
+                        {language === 'pl' ? '📄 Utworzony dokument' : '📄 Created Document'}
+                      </h3>
+                      <div className="flex space-x-2">
+                        {message.documentId && (
+                          <>
+                            <button
+                              onClick={() => handleDownloadDocument(message.documentId!, message.documentContent!)}
+                              className="px-3 py-1 text-xs bg-primary-500 text-white rounded hover:bg-primary-600"
+                            >
+                              {language === 'pl' ? 'Pobierz' : 'Download'}
+                            </button>
+                            <button
+                              onClick={() => handleSaveDocument(message.documentId!)}
+                              className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                            >
+                              {language === 'pl' ? 'Zapisz' : 'Save'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200">
+                      <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans">
+                        {message.documentContent.substring(0, 1000)}
+                        {message.documentContent.length > 1000 && '...'}
+                      </pre>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {language === 'pl' 
+                        ? `Długość: ${message.documentContent.length} znaków`
+                        : `Length: ${message.documentContent.length} characters`}
+                    </p>
+                  </div>
+                </div>
+              )
+            }
+            return null
+          })}
           <div ref={messagesEndRef} />
         </div>
 
@@ -394,13 +471,6 @@ export default function ChatbotPage() {
               className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('send')}
-            </button>
-            <button
-              onClick={handleCreateDocument}
-              disabled={isLoading || !input.trim()}
-              className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t('createDocument')}
             </button>
           </div>
         </div>
