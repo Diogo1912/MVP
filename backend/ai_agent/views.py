@@ -143,19 +143,18 @@ class ChatView(APIView):
         try:
             ai_service = AIService()
         except Exception as e:
-            # AI service initialization failed (likely missing API key)
+            # AI service initialization failed
             import traceback
             error_msg = str(e)
             print(f"AI Service Init Error: {error_msg}")
             print(f"Traceback: {traceback.format_exc()}")
-            if 'API key' in error_msg or 'OPENAI' in error_msg:
-                error_msg = "AI service not configured. Please set OPENAI_API_KEY in environment variables."
             return Response(
-                {'error': error_msg},
+                {'error': f"AI service initialization failed: {error_msg}"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
         
         try:
+            print(f"Attempting chat completion for user {user.email}, persona: {persona}")
             response = ai_service.chat_completion(
                 messages=messages,
                 language=user.language,
@@ -163,6 +162,7 @@ class ChatView(APIView):
                 use_knowledge_base=use_knowledge_base,
                 document_context=document_context
             )
+            print(f"Chat completion successful, tokens used: {response.get('tokens_used', 0)}")
             
             # Save AI message
             ai_message = Message.objects.create(
@@ -198,13 +198,17 @@ class ChatView(APIView):
         except Exception as e:
             import traceback
             error_msg = str(e)
-            print(f"AI Chat Error: {error_msg}")
-            print(f"Traceback: {traceback.format_exc()}")
-            # Clean up error message for users
-            if 'API key' in error_msg:
-                error_msg = "AI service authentication failed. Please check OPENAI_API_KEY."
+            print(f"AI Chat Completion Error: {error_msg}")
+            print(f"Full Traceback: {traceback.format_exc()}")
+            print(f"Error type: {type(e).__name__}")
+            
+            # Return detailed error for debugging
             return Response(
-                {'error': error_msg},
+                {
+                    'error': error_msg,
+                    'error_type': type(e).__name__,
+                    'details': 'Check deploy logs for full traceback'
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
