@@ -640,9 +640,11 @@
                                         <small>Choose which GPT model to use</small>
                                     </div>
                                     <select id="settings-ai-model" class="language-selector">
-                                        <option value="gpt-4">GPT-4 (Best quality)</option>
-                                        <option value="gpt-4-turbo">GPT-4 Turbo (Faster)</option>
-                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Economical)</option>
+                                        <option value="gpt-4o">GPT-4o (Latest, fastest)</option>
+                                        <option value="gpt-4o-mini">GPT-4o Mini (Fast & economical)</option>
+                                        <option value="gpt-4-turbo">GPT-4 Turbo (Advanced)</option>
+                                        <option value="gpt-4">GPT-4 (Classic)</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Budget)</option>
                                     </select>
                                 </div>
                                 
@@ -906,6 +908,41 @@
 
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
+    
+    <!-- Case Details Side Panel -->
+    <div class="side-panel" id="case-details-panel">
+        <div class="side-panel-overlay" onclick="closeCasePanel()"></div>
+        <div class="side-panel-content glass-effect">
+            <div class="side-panel-header">
+                <h2 id="case-panel-title">Case Details</h2>
+                <button class="btn btn-icon" onclick="closeCasePanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="side-panel-body">
+                <div class="case-info-section">
+                    <p id="case-panel-description" style="color: var(--text-secondary); margin-bottom: 1rem;"></p>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+                        <span class="badge" id="case-panel-priority"></span>
+                        <span class="badge" id="case-panel-status"></span>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1rem;">Documents</h3>
+                        <button class="btn btn-sm btn-primary" onclick="uploadToCasePanel()">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                    </div>
+                    <div id="case-panel-documents" class="case-documents-list">
+                        <p class="empty-state"><i class="fas fa-file"></i> No documents</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="js/i18n.js"></script>
     <script src="js/api.js"></script>

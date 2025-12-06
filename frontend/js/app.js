@@ -1,6 +1,7 @@
 // Main application logic for GOLEXAI
 let currentConversationId = null;
 let currentPersona = localStorage.getItem('ai_persona') || 'commercial';
+let currentConversationCaseId = null; // Track case per conversation
 let currentEditingDocumentId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -190,6 +191,11 @@ function setupEventListeners() {
         showToast('success', 'Logged Out', 'You have been signed out');
     });
     
+    // Chat case selector
+    document.getElementById('chat-case-selector')?.addEventListener('change', function() {
+        currentConversationCaseId = this.value || null;
+    });
+    
     // AI Settings
     document.getElementById('settings-temperature')?.addEventListener('input', function() {
         const value = (this.value / 100).toFixed(1);
@@ -235,6 +241,17 @@ function setupEventListeners() {
     // New chat
     document.getElementById('new-chat-btn')?.addEventListener('click', () => {
         currentConversationId = null;
+        currentConversationCaseId = null;
+        
+        // Clear case selector
+        const caseSelector = document.getElementById('chat-case-selector');
+        if (caseSelector) caseSelector.value = '';
+        
+        // Clear active state from conversations
+        document.querySelectorAll('.conversation-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
         document.getElementById('chat-messages').innerHTML = `
             <div class="message ai-message animate-fadeIn">
                 <div class="message-wrapper">
@@ -801,6 +818,16 @@ function setupDocumentCardEvents() {
             }
         });
     });
+    
+    // Case card click to open panel
+    document.querySelectorAll('.case-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const caseId = card.dataset.caseId;
+            if (caseId) {
+                openCasePanel(caseId);
+            }
+        });
+    });
 }
 
 function openEditModal(docId) {
@@ -912,7 +939,7 @@ async function sendMessage() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
     try {
-        const response = await API.sendChatMessage(message, currentConversationId, null, currentPersona);
+        const response = await API.sendChatMessage(message, currentConversationId, null, currentPersona, currentConversationCaseId);
         currentConversationId = response.conversation_id;
         
         // Remove typing indicator
@@ -1059,6 +1086,78 @@ function saveAISettings() {
     showToast('success', 'Saved', 'AI settings saved successfully');
 }
 
+// =================== CASE PANEL ===================
+
+let currentCaseId = null;
+
+async function openCasePanel(caseId) {
+    currentCaseId = caseId;
+    const panel = document.getElementById('case-details-panel');
+    
+    try {
+        const caseData = await API.getCase(caseId);
+        
+        document.getElementById('case-panel-title').textContent = caseData.title;
+        document.getElementById('case-panel-description').textContent = caseData.description || 'No description';
+        document.getElementById('case-panel-priority').textContent = caseData.priority;
+        document.getElementById('case-panel-priority').className = `badge badge-${caseData.priority}`;
+        document.getElementById('case-panel-status').textContent = caseData.status.replace('_', ' ');
+        document.getElementById('case-panel-status').className = `badge badge-${caseData.status}`;
+        
+        // Load documents for this case
+        await loadCaseDocuments(caseId);
+        
+        panel.classList.add('active');
+    } catch (error) {
+        showToast('error', 'Error', 'Failed to load case details');
+    }
+}
+
+function closeCasePanel() {
+    document.getElementById('case-details-panel').classList.remove('active');
+    currentCaseId = null;
+}
+
+async function loadCaseDocuments(caseId) {
+    try {
+        const documents = await API.getDocuments();
+        const caseDocuments = documents.results?.filter(doc => doc.case === parseInt(caseId)) || [];
+        
+        const container = document.getElementById('case-panel-documents');
+        
+        if (caseDocuments.length === 0) {
+            container.innerHTML = '<p class="empty-state"><i class="fas fa-file"></i> No documents</p>';
+            return;
+        }
+        
+        container.innerHTML = caseDocuments.map(doc => {
+            const fileType = doc.file?.endsWith('.pdf') ? 'pdf' : doc.file?.endsWith('.docx') ? 'docx' : 'ai';
+            return `
+                <div class="case-doc-item">
+                    <div class="case-doc-icon ${fileType}">
+                        <i class="fas fa-file-${fileType === 'pdf' ? 'pdf' : fileType === 'docx' ? 'word' : 'alt'}"></i>
+                    </div>
+                    <div class="case-doc-info">
+                        <div class="case-doc-name">${escapeHtml(doc.title)}</div>
+                        <div class="case-doc-date">${formatDate(doc.created_at)}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading case documents:', error);
+    }
+}
+
+function uploadToCasePanel() {
+    if (!currentCaseId) return;
+    
+    // Pre-select the case in the upload modal
+    document.getElementById('document-case').value = currentCaseId;
+    closeCasePanel();
+    openModal('upload-modal');
+}
+
 async function loadConversations() {
     try {
         const conversations = await API.getConversations();
@@ -1150,8 +1249,74 @@ async function loadCasesForChatSelector() {
 }
 
 async function loadConversation(conversationId) {
-    currentConversationId = conversationId;
-    // TODO: Load conversation messages
+    try {
+        // Get conversation details
+        const conversation = await API.getConversation(conversationId);
+        currentConversationId = conversationId;
+        currentConversationCaseId = conversation.case;
+        
+        // Update case selector if present
+        const caseSelector = document.getElementById('chat-case-selector');
+        if (caseSelector && conversation.case) {
+            caseSelector.value = conversation.case;
+        }
+        
+        // Update active state in sidebar
+        document.querySelectorAll('.conversation-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.id == conversationId);
+        });
+        
+        // Load messages
+        const messages = conversation.messages || [];
+        const messagesContainer = document.getElementById('chat-messages');
+        messagesContainer.innerHTML = '';
+        
+        messages.forEach(msg => {
+            if (msg.role === 'user') {
+                messagesContainer.innerHTML += `
+                    <div class="message user-message">
+                        <div class="message-wrapper">
+                            <div class="message-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="message-content">
+                                <strong>${t('chatbot.you')}</strong>
+                                <p>${escapeHtml(msg.content)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (msg.role === 'assistant') {
+                const formattedContent = formatAIResponse(msg.content);
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">
+                        <div class="message-wrapper">
+                            <div class="message-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="message-content">
+                                <strong>GOLEXAI</strong>
+                                <div class="formatted-text">${formattedContent}</div>
+                                <div class="message-actions">
+                                    <button class="message-action-btn copy-btn" onclick="copyToClipboard(this)">
+                                        <i class="fas fa-copy"></i> ${t('chatbot.copy')}
+                                    </button>
+                                    <button class="message-action-btn" onclick="saveAsDocument('${msg.id}', \`${escapeHtml(msg.content)}\`)">
+                                        <i class="fas fa-file-alt"></i> Save as Document
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    } catch (error) {
+        console.error('Error loading conversation:', error);
+        showToast('error', 'Error', 'Failed to load conversation');
+    }
 }
 
 // =================== DOCUMENT ANALYSIS ===================

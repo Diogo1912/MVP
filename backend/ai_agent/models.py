@@ -30,6 +30,7 @@ class Conversation(models.Model):
     """AI Conversation history"""
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations')
+    case = models.ForeignKey('cases.Case', on_delete=models.SET_NULL, null=True, blank=True, related_name='conversations')
     title = models.CharField(max_length=255, blank=True)
     language = models.CharField(max_length=2, choices=[('en', 'English'), ('pl', 'Polish')], default='pl')
     created_at = models.DateTimeField(auto_now_add=True)

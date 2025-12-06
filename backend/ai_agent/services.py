@@ -114,7 +114,7 @@ class AIService:
                 context_parts.append(f"Document: {entry.name}\n{entry.document.content_text[:1000]}")
         return "\n\n".join(context_parts)
     
-    def chat_completion(self, messages, language='pl', persona='commercial', use_knowledge_base=False, document_context=None):
+    def chat_completion(self, messages, language='pl', persona='commercial', use_knowledge_base=False, document_context=None, case_context=None):
         """Generate chat completion with GPT"""
         # Get persona-specific system prompt
         system_prompt = self.get_persona_prompt(persona, language)
@@ -129,6 +129,10 @@ class AIService:
             kb_context = self.get_knowledge_base_context()
             if kb_context:
                 system_prompt += f"\n\n**Knowledge Base Reference:**\n{kb_context}"
+        
+        # Add case context if provided
+        if case_context:
+            system_prompt += f"\n\n**Case Context:**\n{case_context}"
         
         # Add document context if provided
         if document_context:

@@ -166,7 +166,7 @@ class API {
     }
     
     // AI Chat
-    static async sendChatMessage(message, conversationId, documentId, persona = 'commercial') {
+    static async sendChatMessage(message, conversationId, documentId, persona = 'commercial', caseId = null) {
         return this.request('/ai/chat/', {
             method: 'POST',
             body: JSON.stringify({
@@ -174,6 +174,7 @@ class API {
                 conversation_id: conversationId,
                 document_id: documentId,
                 persona,
+                case_id: caseId,
             }),
         });
     }
@@ -184,6 +185,10 @@ class API {
     
     static async getConversation(id) {
         return this.request(`/ai/conversations/${id}/`);
+    }
+    
+    static async getConversationMessages(id) {
+        return this.request(`/ai/conversations/${id}/messages/`);
     }
     
     static async deleteConversation(id) {

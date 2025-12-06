@@ -95,6 +95,7 @@ class ChatView(APIView):
         document_id = request.data.get('document_id')
         persona = request.data.get('persona', 'commercial')  # commercial or personal
         use_knowledge_base = request.data.get('use_knowledge_base', False)
+        case_id = request.data.get('case_id')  # Case to assign or update
         
         if not message_content:
             return Response({'error': 'Message is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -103,13 +104,18 @@ class ChatView(APIView):
         if conversation_id:
             try:
                 conversation = Conversation.objects.get(id=conversation_id, user=user)
+                # Update case if provided
+                if case_id:
+                    conversation.case_id = case_id
+                    conversation.save()
             except Conversation.DoesNotExist:
                 return Response({'error': 'Conversation not found'}, status=status.HTTP_404_NOT_FOUND)
         else:
             conversation = Conversation.objects.create(
                 user=user,
                 language=user.language,
-                title=message_content[:50]
+                title=message_content[:50],
+                case_id=case_id if case_id else None
             )
         
         # Get document context if provided
@@ -120,6 +126,23 @@ class ChatView(APIView):
                 document = Document.objects.get(id=document_id, user=user)
                 document_context = document.content_text[:2000] if document.content_text else None
             except Document.DoesNotExist:
+                pass
+        
+        # Get case context if assigned to conversation
+        case_context = None
+        if conversation.case_id:
+            try:
+                from cases.models import Case
+                case = Case.objects.get(id=conversation.case_id, lawyer=user)
+                # Fetch all documents related to this case
+                case_documents = Document.objects.filter(case=case, user=user)
+                
+                context_parts = [f"Case Title: {case.title}", f"Case Description: {case.description}"]
+                for doc in case_documents:
+                    if doc.content_text:
+                        context_parts.append(f"Document: {doc.title}\n{doc.content_text[:800]}")
+                case_context = "\n\n".join(context_parts)
+            except:
                 pass
         
         # Save user message
@@ -164,7 +187,8 @@ class ChatView(APIView):
                 language=user.language,
                 persona=persona,
                 use_knowledge_base=use_knowledge_base,
-                document_context=document_context
+                document_context=document_context,
+                case_context=case_context
             )
             logger.info(f"Chat completion successful, tokens used: {response.get('tokens_used', 0)}")
             
