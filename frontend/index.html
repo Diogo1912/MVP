@@ -295,9 +295,9 @@
                         </select>
                         <select class="language-selector" id="status-filter">
                             <option value="" data-i18n="documents.all_statuses">All Statuses</option>
-                            <option value="started" data-i18n="documents.started">Started</option>
-                            <option value="in-progress" data-i18n="documents.in_progress">In Progress</option>
-                            <option value="done" data-i18n="documents.done">Done</option>
+                            <option value="open">Open</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="closed">Closed</option>
                         </select>
                     </div>
                     <input type="text" class="search-input" id="document-search" placeholder="Search documents..." data-i18n-placeholder="documents.search">
@@ -767,17 +767,18 @@
                 <div class="form-group">
                     <label data-i18n="documents.priority">Priority</label>
                     <select id="case-priority">
-                        <option value="low" data-i18n="documents.low">Low</option>
-                        <option value="medium" data-i18n="documents.medium">Medium</option>
-                        <option value="urgent" data-i18n="documents.urgent">Urgent</option>
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label data-i18n="documents.status">Status</label>
                     <select id="case-status">
-                        <option value="started" data-i18n="documents.started">Started</option>
-                        <option value="in-progress" data-i18n="documents.in_progress">In Progress</option>
-                        <option value="done" data-i18n="documents.done">Done</option>
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="closed">Closed</option>
                     </select>
                 </div>
             </div>
