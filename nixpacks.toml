@@ -1,16 +1,20 @@
 # Nixpacks configuration for Railway
 
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip", "postgresql"]
+nixPkgs = ["python311", "postgresql"]
 
 [phases.install]
-cmds = ["cd backend && pip install -r requirements.txt"]
+cmds = [
+    "python -m venv .venv",
+    ".venv/bin/pip install --upgrade pip",
+    ".venv/bin/pip install -r backend/requirements.txt"
+]
 
 [phases.build]
-cmds = ["cd backend && python manage.py collectstatic --noinput"]
+cmds = [".venv/bin/python backend/manage.py collectstatic --noinput"]
 
 [start]
-cmd = "cd backend && python manage.py migrate && gunicorn golexai.wsgi:application --bind 0.0.0.0:$PORT"
+cmd = ".venv/bin/python backend/manage.py migrate && .venv/bin/gunicorn golexai.wsgi:application --bind 0.0.0.0:$PORT --chdir backend"
 
 [variables]
 PYTHONUNBUFFERED = "1"
