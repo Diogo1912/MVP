@@ -505,21 +505,70 @@ function updatePersonaBadge() {
 
 async function loadDocuments() {
     try {
-        const documents = await API.getDocuments();
+        const [documents, cases] = await Promise.all([
+            API.getDocuments(),
+            API.getCases()
+        ]);
+        
         const container = document.getElementById('documents-list');
         
-        if (!documents.results || documents.results.length === 0) {
+        let html = '';
+        
+        // Add cases first
+        if (cases.results && cases.results.length > 0) {
+            html += '<h3 style="margin: 1.5rem 0 1rem; color: var(--text-primary);">Cases</h3>';
+            html += cases.results.map(caseItem => createCaseCard(caseItem)).join('');
+        }
+        
+        // Add documents
+        if (documents.results && documents.results.length > 0) {
+            html += '<h3 style="margin: 1.5rem 0 1rem; color: var(--text-primary);">Documents</h3>';
+            html += documents.results.map(doc => createDocumentCard(doc)).join('');
+        }
+        
+        if (!html) {
             container.innerHTML = `<p class="text-muted">${t('documents.no_documents')}</p>`;
             return;
         }
         
-        container.innerHTML = documents.results.map(doc => createDocumentCard(doc)).join('');
+        container.innerHTML = html;
         
         // Add event listeners
         setupDocumentCardEvents();
     } catch (error) {
         console.error('Error loading documents:', error);
     }
+}
+
+function createCaseCard(caseItem) {
+    const priorityClass = caseItem.priority || 'medium';
+    const statusBadge = caseItem.status === 'open' ? 'Open' : 
+                       caseItem.status === 'in_progress' ? 'In Progress' : 'Closed';
+    const statusClass = caseItem.status || 'open';
+    
+    return `
+        <div class="document-card case-card" data-case-id="${caseItem.id}">
+            <div class="document-card-header">
+                <div class="document-info">
+                    <div class="document-icon case-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div>
+                        <h4>${escapeHtml(caseItem.title)}</h4>
+                        <p class="document-meta">
+                            <span class="badge badge-${priorityClass}">${caseItem.priority}</span>
+                            <span class="badge badge-${statusClass}">${statusBadge}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            ${caseItem.description ? `<p class="document-description">${escapeHtml(caseItem.description)}</p>` : ''}
+            <div class="document-card-footer">
+                <span class="document-date">${formatDate(caseItem.created_at)}</span>
+                <span class="document-doc-count">${caseItem.document_count || 0} documents</span>
+            </div>
+        </div>
+    `;
 }
 
 function createDocumentCard(doc) {

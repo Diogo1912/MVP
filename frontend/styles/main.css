@@ -1151,6 +1151,15 @@ body {
     color: var(--text-secondary);
 }
 
+.document-icon.case-icon {
+    background-color: #ede9fe;
+    color: #7c3aed;
+}
+
+.case-card {
+    border-left: 3px solid #7c3aed;
+}
+
 .document-details {
     flex: 1;
 }
