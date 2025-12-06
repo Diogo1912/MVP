@@ -1,20 +1,29 @@
 # Nixpacks configuration for Railway
-# Railway will build from backend/ directory when root directory is set
 
+# Use Python provider
 [phases.setup]
-nixPkgs = ["python313", "postgresql"]
+nixPkgs = ["python311Full", "postgresql"]
 
+# Create virtual environment and install
 [phases.install]
+dependsOn = ["setup"]
 cmds = [
-    "pip install --upgrade pip",
-    "pip install -r requirements.txt"
+    "python -m venv /opt/venv",
+    ". /opt/venv/bin/activate && cd backend && pip install --upgrade pip",
+    ". /opt/venv/bin/activate && cd backend && pip install -r requirements.txt"
 ]
 
+# Build phase
 [phases.build]
+dependsOn = ["install"]
 cmds = [
-    "python manage.py collectstatic --noinput"
+    ". /opt/venv/bin/activate && cd backend && python manage.py collectstatic --noinput"
 ]
 
+# Start command
 [start]
-cmd = "python manage.py migrate && gunicorn golexai.wsgi:application --bind 0.0.0.0:$PORT"
+cmd = ". /opt/venv/bin/activate && cd backend && python manage.py migrate && gunicorn golexai.wsgi:application --bind 0.0.0.0:$PORT"
 
+# Set environment variables
+[variables]
+PYTHONUNBUFFERED = "1"
