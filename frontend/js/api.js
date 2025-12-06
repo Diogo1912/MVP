@@ -1,5 +1,7 @@
 // API client for GOLEXAI backend
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000/api' 
+    : '/api';
 
 let authToken = localStorage.getItem('authToken');
 
@@ -37,7 +39,9 @@ class API {
                 return;
             }
             
-            const data = await response.json();
+            // Handle empty responses
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : {};
             
             if (!response.ok) {
                 throw new Error(data.error || data.detail || 'API Error');
@@ -69,6 +73,10 @@ class API {
         return this.request('/documents/');
     }
     
+    static async getDocument(id) {
+        return this.request(`/documents/${id}/`);
+    }
+    
     static async uploadDocument(file, title, fileType, caseId) {
         const formData = new FormData();
         formData.append('file', file);
@@ -85,6 +93,19 @@ class API {
         }).then(res => res.json());
     }
     
+    static async updateDocument(id, data) {
+        return this.request(`/documents/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    }
+    
+    static async deleteDocument(id) {
+        return this.request(`/documents/${id}/`, {
+            method: 'DELETE',
+        });
+    }
+    
     static async analyzeDocument(documentId) {
         return this.request(`/documents/${documentId}/analyze/`, {
             method: 'POST',
@@ -96,6 +117,10 @@ class API {
         return this.request('/cases/');
     }
     
+    static async getCase(id) {
+        return this.request(`/cases/${id}/`);
+    }
+    
     static async createCase(data) {
         return this.request('/cases/', {
             method: 'POST',
@@ -103,14 +128,28 @@ class API {
         });
     }
     
+    static async updateCase(id, data) {
+        return this.request(`/cases/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    }
+    
+    static async deleteCase(id) {
+        return this.request(`/cases/${id}/`, {
+            method: 'DELETE',
+        });
+    }
+    
     // AI Chat
-    static async sendChatMessage(message, conversationId, documentId) {
+    static async sendChatMessage(message, conversationId, documentId, persona = 'commercial') {
         return this.request('/ai/chat/', {
             method: 'POST',
             body: JSON.stringify({
                 message,
                 conversation_id: conversationId,
                 document_id: documentId,
+                persona,
             }),
         });
     }
@@ -119,9 +158,46 @@ class API {
         return this.request('/ai/conversations/');
     }
     
+    static async getConversation(id) {
+        return this.request(`/ai/conversations/${id}/`);
+    }
+    
+    static async deleteConversation(id) {
+        return this.request(`/ai/conversations/${id}/`, {
+            method: 'DELETE',
+        });
+    }
+    
+    // Prompts
+    static async getPrompts() {
+        return this.request('/ai/prompts/');
+    }
+    
+    static async getPrompt(id) {
+        return this.request(`/ai/prompts/${id}/`);
+    }
+    
+    static async createPrompt(data) {
+        return this.request('/ai/prompts/', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+    
+    static async updatePrompt(id, data) {
+        return this.request(`/ai/prompts/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    }
+    
     // Analytics
     static async getAnalytics() {
         return this.request('/analytics/');
+    }
+    
+    static async getAuditLogs() {
+        return this.request('/analytics/audit-logs/');
     }
     
     // User profile
@@ -154,11 +230,24 @@ class API {
                 'Authorization': `Bearer ${authToken}`,
             },
         });
+        
+        if (!response.ok) {
+            throw new Error('Download failed');
+        }
+        
         const blob = await response.blob();
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `document-${documentId}`;
+        
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?(.+)"?/);
+            if (match) filename = match[1];
+        }
+        
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `document-${documentId}`;
+        a.download = filename;
         a.click();
         window.URL.revokeObjectURL(downloadUrl);
     }
@@ -170,6 +259,11 @@ class API {
                 'Authorization': `Bearer ${authToken}`,
             },
         });
+        
+        if (!response.ok) {
+            throw new Error('Export failed');
+        }
+        
         const blob = await response.blob();
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -178,5 +272,12 @@ class API {
         a.click();
         window.URL.revokeObjectURL(downloadUrl);
     }
+    
+    // Generate document from AI
+    static async generateDocument(content, title, type = 'docx') {
+        return this.request('/ai/generate-document/', {
+            method: 'POST',
+            body: JSON.stringify({ content, title, type }),
+        });
+    }
 }
-

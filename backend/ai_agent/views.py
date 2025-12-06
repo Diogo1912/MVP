@@ -15,7 +15,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Conversation.objects.filter(user=self.request.user)
+        return Conversation.objects.filter(user=self.request.user).order_by('-updated_at')
     
     def get_serializer_class(self):
         from .serializers import ConversationSerializer
@@ -23,6 +23,14 @@ class ConversationViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user, language=self.request.user.language)
+    
+    @action(detail=True, methods=['get'])
+    def messages(self, request, pk=None):
+        """Get all messages for a conversation"""
+        conversation = self.get_object()
+        messages = Message.objects.filter(conversation=conversation).order_by('created_at')
+        from .serializers import MessageSerializer
+        return Response(MessageSerializer(messages, many=True).data)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -34,21 +42,30 @@ class MessageViewSet(viewsets.ModelViewSet):
             return Message.objects.filter(
                 conversation_id=conversation_id,
                 conversation__user=self.request.user
-            )
-        return Message.objects.filter(conversation__user=self.request.user)
+            ).order_by('created_at')
+        return Message.objects.filter(conversation__user=self.request.user).order_by('-created_at')
     
     def get_serializer_class(self):
         from .serializers import MessageSerializer
         return MessageSerializer
 
 
-class PromptViewSet(viewsets.ReadOnlyModelViewSet):
+class PromptViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Prompt.objects.all()
+    
+    def get_queryset(self):
+        return Prompt.objects.all().order_by('name', '-version')
     
     def get_serializer_class(self):
         from .serializers import PromptSerializer
         return PromptSerializer
+    
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        """Get all active prompts"""
+        prompts = Prompt.objects.filter(is_active=True)
+        from .serializers import PromptSerializer
+        return Response(PromptSerializer(prompts, many=True).data)
 
 
 class KnowledgeBaseViewSet(viewsets.ModelViewSet):
@@ -71,6 +88,7 @@ class ChatView(APIView):
         message_content = request.data.get('message', '')
         conversation_id = request.data.get('conversation_id')
         document_id = request.data.get('document_id')
+        persona = request.data.get('persona', 'commercial')  # commercial or personal
         use_knowledge_base = request.data.get('use_knowledge_base', False)
         
         if not message_content:
@@ -86,7 +104,8 @@ class ChatView(APIView):
             conversation = Conversation.objects.create(
                 user=user,
                 language=user.language,
-                title=message_content[:50]
+                title=message_content[:50],
+                metadata={'persona': persona}
             )
         
         # Get document context if provided
@@ -124,6 +143,7 @@ class ChatView(APIView):
             response = ai_service.chat_completion(
                 messages=messages,
                 language=user.language,
+                persona=persona,
                 use_knowledge_base=use_knowledge_base,
                 document_context=document_context
             )
@@ -146,7 +166,10 @@ class ChatView(APIView):
                 user=user,
                 metric_type='ai_query',
                 value=response['tokens_used'],
-                metadata={'conversation_id': conversation.id}
+                metadata={
+                    'conversation_id': conversation.id,
+                    'persona': persona
+                }
             )
             
             from .serializers import MessageSerializer
@@ -161,3 +184,111 @@ class ChatView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class RegenerateView(APIView):
+    """Regenerate an AI response with additional instructions"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        message_id = request.data.get('message_id')
+        additional_instructions = request.data.get('instructions', '')
+        
+        if not message_id:
+            return Response({'error': 'Message ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Get the original AI message
+            ai_message = Message.objects.get(
+                id=message_id,
+                role='assistant',
+                conversation__user=request.user
+            )
+            
+            # Get the user message that triggered this response
+            user_message = Message.objects.filter(
+                conversation=ai_message.conversation,
+                role='user',
+                created_at__lt=ai_message.created_at
+            ).order_by('-created_at').first()
+            
+            if not user_message:
+                return Response({'error': 'Original user message not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Regenerate response
+            ai_service = AIService()
+            response = ai_service.regenerate_response(
+                original_message=user_message.content,
+                previous_response=ai_message.content,
+                additional_instructions=additional_instructions,
+                language=request.user.language
+            )
+            
+            # Create new AI message
+            new_ai_message = Message.objects.create(
+                conversation=ai_message.conversation,
+                role='assistant',
+                content=response['content'],
+                tokens_used=response['tokens_used'],
+                document=ai_message.document
+            )
+            
+            # Track usage
+            UsageMetric.objects.create(
+                user=request.user,
+                metric_type='ai_query',
+                value=response['tokens_used'],
+                metadata={
+                    'conversation_id': ai_message.conversation.id,
+                    'regeneration': True
+                }
+            )
+            
+            from .serializers import MessageSerializer
+            return Response({
+                'message': MessageSerializer(new_ai_message).data,
+            })
+            
+        except Message.DoesNotExist:
+            return Response({'error': 'Message not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GenerateDocumentView(APIView):
+    """Generate a document from AI content"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        content = request.data.get('content', '')
+        title = request.data.get('title', 'AI Generated Document')
+        document_type = request.data.get('type', 'docx')
+        
+        if not content:
+            return Response({'error': 'Content is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Create a document record
+            document = Document.objects.create(
+                user=request.user,
+                title=title,
+                file_type='ai_generated',
+                content_text=content,
+                is_ai_generated=True
+            )
+            
+            # Track usage
+            UsageMetric.objects.create(
+                user=request.user,
+                metric_type='document_created',
+                value=1,
+                metadata={'document_id': document.id, 'ai_generated': True}
+            )
+            
+            from documents.serializers import DocumentSerializer
+            return Response({
+                'document': DocumentSerializer(document).data,
+            })
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

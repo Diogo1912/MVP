@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GOLEXAI - Legal AI Platform</title>
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/jpeg" href="images/logo-icon.jpeg">
 </head>
 <body>
     <div id="app">
@@ -12,29 +14,75 @@
         <nav class="navbar" id="navbar">
             <div class="nav-container">
                 <div class="nav-brand">
+                    <img src="images/logo-icon.jpeg" alt="GOLEXAI" class="nav-logo">
                     <h1>GOLEXAI</h1>
                 </div>
-                <div class="nav-menu">
-                    <a href="#" class="nav-link" data-section="overview" data-i18n="nav.overview">Overview</a>
-                    <a href="#" class="nav-link" data-section="chatbot" data-i18n="nav.chatbot">AI Chatbot</a>
-                    <a href="#" class="nav-link" data-section="documents" data-i18n="nav.documents">Documents</a>
-                    <a href="#" class="nav-link" data-section="analytics" data-i18n="nav.analytics">Analytics</a>
-                    <a href="#" class="nav-link" data-section="settings" data-i18n="nav.settings">Settings</a>
-                    <select id="language-selector" class="language-selector">
-                        <option value="en">EN</option>
-                        <option value="pl">PL</option>
-                    </select>
-                    <button id="logout-btn" class="btn btn-secondary" data-i18n="nav.logout">Logout</button>
+                <div class="nav-menu" id="nav-menu">
+                    <a href="#" class="nav-link active" data-section="overview">
+                        <i class="fas fa-home"></i>
+                        <span data-i18n="nav.overview">Overview</span>
+                    </a>
+                    <a href="#" class="nav-link" data-section="chatbot">
+                        <i class="fas fa-robot"></i>
+                        <span data-i18n="nav.chatbot">AI Chatbot</span>
+                    </a>
+                    <a href="#" class="nav-link" data-section="documents">
+                        <i class="fas fa-folder-open"></i>
+                        <span data-i18n="nav.documents">Documents</span>
+                    </a>
+                    <a href="#" class="nav-link" data-section="analytics">
+                        <i class="fas fa-chart-line"></i>
+                        <span data-i18n="nav.analytics">Analytics</span>
+                    </a>
+                    <a href="#" class="nav-link" data-section="settings">
+                        <i class="fas fa-cog"></i>
+                        <span data-i18n="nav.settings">Settings</span>
+                    </a>
+                    <div class="nav-right">
+                        <select id="language-selector" class="language-selector">
+                            <option value="en">EN</option>
+                            <option value="pl">PL</option>
+                        </select>
+                        <button class="profile-btn" id="profile-btn">
+                            <div class="avatar" id="user-avatar">U</div>
+                            <span id="user-name">User</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
                 </div>
+                <button class="btn btn-icon mobile-menu-btn" id="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
         </nav>
 
         <!-- Login Screen -->
         <div id="login-screen" class="screen active">
             <div class="login-container">
-                <h1 data-i18n="login.title">Welcome to GOLEXAI</h1>
-                <p data-i18n="login.subtitle">AI-powered legal tech platform</p>
-                <button id="google-login-btn" class="btn btn-primary" data-i18n="login.google">Sign in with Google</button>
+                <div class="login-card animate-slideUp">
+                    <img src="images/logo-full.jpeg" alt="GOLEXAI" class="login-logo">
+                    <h1 data-i18n="login.title">Welcome to GOLEXAI</h1>
+                    <p data-i18n="login.subtitle">AI-powered legal tech platform</p>
+                    <button id="google-login-btn" class="btn btn-primary btn-lg">
+                        <i class="fab fa-google"></i>
+                        <span data-i18n="login.google">Sign in with Google</span>
+                    </button>
+                    
+                    <div class="login-form">
+                        <div class="form-group">
+                            <label data-i18n="login.email">Email</label>
+                            <input type="email" id="login-email" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="login.password">Password</label>
+                            <input type="password" id="login-password" placeholder="••••••••">
+                        </div>
+                        <button id="email-login-btn" class="btn btn-secondary btn-lg" style="width: 100%;">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span data-i18n="login.signin">Sign In</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -42,84 +90,561 @@
         <div id="dashboard" class="screen">
             <!-- Overview Section -->
             <section id="overview-section" class="section active">
-                <h2 data-i18n="overview.title">Overview</h2>
+                <div class="page-header">
+                    <h2 data-i18n="overview.title">Overview</h2>
+                    <div class="page-header-actions">
+                        <button class="btn btn-primary" id="quick-upload-btn">
+                            <i class="fas fa-upload"></i>
+                            <span data-i18n="overview.quick_upload">Quick Upload</span>
+                        </button>
+                    </div>
+                </div>
+                
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h3 data-i18n="overview.total_documents">Total Documents</h3>
+                        <div class="stat-card-header">
+                            <h3 data-i18n="overview.total_documents">Total Documents</h3>
+                            <div class="stat-card-icon documents">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                        </div>
                         <p class="stat-value" id="stat-documents">0</p>
+                        <span class="stat-change"><i class="fas fa-arrow-up"></i> +12% this month</span>
                     </div>
                     <div class="stat-card">
-                        <h3 data-i18n="overview.active_cases">Active Cases</h3>
+                        <div class="stat-card-header">
+                            <h3 data-i18n="overview.active_cases">Active Cases</h3>
+                            <div class="stat-card-icon cases">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                        </div>
                         <p class="stat-value" id="stat-cases">0</p>
+                        <span class="stat-change"><i class="fas fa-arrow-up"></i> +3 new</span>
                     </div>
                     <div class="stat-card">
-                        <h3 data-i18n="overview.ai_queries">AI Queries</h3>
+                        <div class="stat-card-header">
+                            <h3 data-i18n="overview.ai_queries">AI Queries</h3>
+                            <div class="stat-card-icon queries">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                        </div>
                         <p class="stat-value" id="stat-queries">0</p>
+                        <span class="stat-change"><i class="fas fa-arrow-up"></i> +28% this week</span>
                     </div>
                     <div class="stat-card">
-                        <h3 data-i18n="overview.monthly_productivity">Monthly Productivity</h3>
+                        <div class="stat-card-header">
+                            <h3 data-i18n="overview.monthly_productivity">Monthly Productivity</h3>
+                            <div class="stat-card-icon productivity">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                        </div>
                         <p class="stat-value" id="stat-productivity">0</p>
+                        <span class="stat-change negative"><i class="fas fa-arrow-down"></i> -5% vs last month</span>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="analytics-card" style="margin-top: 1rem;">
+                    <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+                    <div id="recent-activity" class="recent-activity-list">
+                        <p class="text-muted">Loading recent activity...</p>
                     </div>
                 </div>
             </section>
 
             <!-- Chatbot Section -->
             <section id="chatbot-section" class="section">
-                <h2 data-i18n="chatbot.title">AI Chatbot</h2>
-                <div class="chat-container">
-                    <div id="chat-messages" class="chat-messages"></div>
-                    <div class="chat-input-container">
-                        <input type="text" id="chat-input" class="chat-input" placeholder="Type your message..." data-i18n-placeholder="chatbot.input_placeholder">
-                        <button id="send-btn" class="btn btn-primary" data-i18n="chatbot.send">Send</button>
+                <div class="chat-layout">
+                    <div class="chat-sidebar">
+                        <div class="chat-sidebar-header">
+                            <h3 data-i18n="chatbot.persona">AI Persona</h3>
+                            <div class="persona-selector">
+                                <button class="persona-option active" data-persona="commercial">
+                                    <i class="fas fa-building"></i>
+                                    <span data-i18n="chatbot.commercial_law">Commercial Law</span>
+                                </button>
+                                <button class="persona-option" data-persona="personal">
+                                    <i class="fas fa-user"></i>
+                                    <span data-i18n="chatbot.personal_law">Personal Law</span>
+                                </button>
+                            </div>
+                            <button class="btn btn-primary new-chat-btn" id="new-chat-btn" style="width: 100%;">
+                                <i class="fas fa-plus"></i>
+                                <span data-i18n="chatbot.new_chat">New Chat</span>
+                            </button>
+                        </div>
+                        <div class="conversations-list" id="conversations-list">
+                            <!-- Conversations will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <div class="chat-main">
+                        <div class="chat-header">
+                            <div class="chat-header-info">
+                                <span class="persona-badge" id="current-persona-badge">
+                                    <i class="fas fa-building"></i>
+                                    <span data-i18n="chatbot.commercial_law">Commercial Law</span>
+                                </span>
+                            </div>
+                            <div class="chat-header-actions">
+                                <button class="btn btn-sm btn-outline" id="attach-doc-btn">
+                                    <i class="fas fa-paperclip"></i>
+                                    <span data-i18n="chatbot.attach">Attach Document</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="chat-messages" class="chat-messages">
+                            <!-- Welcome message -->
+                            <div class="message ai-message animate-fadeIn">
+                                <div class="message-wrapper">
+                                    <div class="message-avatar">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="message-content">
+                                        <strong>GOLEXAI</strong>
+                                        <p data-i18n="chatbot.welcome">Hello! I'm your AI legal assistant. How can I help you today? I can analyze documents, draft legal texts, answer questions about commercial or personal law, and much more.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-container">
+                            <div class="chat-input-wrapper">
+                                <div class="chat-input-box">
+                                    <textarea id="chat-input" class="chat-input" placeholder="Type your message..." data-i18n-placeholder="chatbot.input_placeholder" rows="1"></textarea>
+                                    <div class="chat-input-actions">
+                                        <button class="attach-btn" id="inline-attach-btn">
+                                            <i class="fas fa-paperclip"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button id="send-btn" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- Documents Section -->
             <section id="documents-section" class="section">
-                <h2 data-i18n="documents.title">Documents & Cases</h2>
-                <div class="documents-header">
-                    <button id="upload-doc-btn" class="btn btn-primary" data-i18n="documents.upload">Upload Document</button>
-                    <button id="create-case-btn" class="btn btn-secondary" data-i18n="documents.create_case">Create Case</button>
+                <div class="page-header">
+                    <h2 data-i18n="documents.title">Documents & Cases</h2>
+                    <div class="page-header-actions">
+                        <button id="upload-doc-btn" class="btn btn-primary">
+                            <i class="fas fa-upload"></i>
+                            <span data-i18n="documents.upload">Upload Document</span>
+                        </button>
+                        <button id="create-case-btn" class="btn btn-secondary">
+                            <i class="fas fa-folder-plus"></i>
+                            <span data-i18n="documents.create_case">Create Case</span>
+                        </button>
+                    </div>
                 </div>
-                <div id="documents-list" class="documents-list"></div>
+                
+                <div class="documents-header">
+                    <div class="documents-filters">
+                        <div class="filter-group">
+                            <button class="filter-btn active" data-filter="all" data-i18n="documents.filter_all">All</button>
+                            <button class="filter-btn" data-filter="pdf">PDF</button>
+                            <button class="filter-btn" data-filter="docx">DOCX</button>
+                            <button class="filter-btn" data-filter="ai-generated" data-i18n="documents.filter_ai">AI Generated</button>
+                        </div>
+                        <select class="language-selector" id="priority-filter">
+                            <option value="" data-i18n="documents.all_priorities">All Priorities</option>
+                            <option value="urgent" data-i18n="documents.urgent">Urgent</option>
+                            <option value="medium" data-i18n="documents.medium">Medium</option>
+                            <option value="low" data-i18n="documents.low">Low</option>
+                        </select>
+                        <select class="language-selector" id="status-filter">
+                            <option value="" data-i18n="documents.all_statuses">All Statuses</option>
+                            <option value="started" data-i18n="documents.started">Started</option>
+                            <option value="in-progress" data-i18n="documents.in_progress">In Progress</option>
+                            <option value="done" data-i18n="documents.done">Done</option>
+                        </select>
+                    </div>
+                    <input type="text" class="search-input" id="document-search" placeholder="Search documents..." data-i18n-placeholder="documents.search">
+                </div>
+                
+                <div id="documents-list" class="documents-list">
+                    <!-- Documents will be loaded here -->
+                </div>
             </section>
 
             <!-- Analytics Section -->
             <section id="analytics-section" class="section">
-                <h2 data-i18n="analytics.title">Analytics</h2>
-                <div id="analytics-content" class="analytics-content">
-                    <p data-i18n="analytics.loading">Loading analytics...</p>
+                <div class="page-header">
+                    <h2 data-i18n="analytics.title">Analytics</h2>
+                    <div class="page-header-actions">
+                        <button class="btn btn-secondary">
+                            <i class="fas fa-download"></i>
+                            <span data-i18n="analytics.export">Export Report</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <h3><i class="fas fa-file-alt"></i> Document Activity</h3>
+                        <div class="analytics-chart" id="documents-chart">
+                            <div class="chart-bar" style="height: 40%;"></div>
+                            <div class="chart-bar" style="height: 60%;"></div>
+                            <div class="chart-bar" style="height: 80%;"></div>
+                            <div class="chart-bar" style="height: 45%;"></div>
+                            <div class="chart-bar" style="height: 90%;"></div>
+                            <div class="chart-bar" style="height: 70%;"></div>
+                            <div class="chart-bar" style="height: 55%;"></div>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3><i class="fas fa-brain"></i> AI Usage</h3>
+                        <div class="analytics-chart" id="ai-chart">
+                            <div class="chart-bar" style="height: 30%;"></div>
+                            <div class="chart-bar" style="height: 50%;"></div>
+                            <div class="chart-bar" style="height: 70%;"></div>
+                            <div class="chart-bar" style="height: 85%;"></div>
+                            <div class="chart-bar" style="height: 95%;"></div>
+                            <div class="chart-bar" style="height: 80%;"></div>
+                            <div class="chart-bar" style="height: 60%;"></div>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3><i class="fas fa-briefcase"></i> Case Progress</h3>
+                        <div id="case-progress">
+                            <p class="text-muted">Loading case data...</p>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3><i class="fas fa-clock"></i> Time Saved</h3>
+                        <div id="time-saved">
+                            <p class="stat-value" style="font-size: 3rem;">24h</p>
+                            <p class="text-muted">Estimated time saved this month</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- Settings Section -->
             <section id="settings-section" class="section">
-                <h2 data-i18n="settings.title">Settings</h2>
-                <div class="settings-content">
-                    <div class="setting-group">
-                        <h3 data-i18n="settings.gdpr">GDPR & Data Management</h3>
-                        <button id="export-data-btn" class="btn btn-secondary" data-i18n="settings.export_data">Export My Data</button>
-                        <button id="delete-data-btn" class="btn btn-danger" data-i18n="settings.delete_data">Delete My Data</button>
+                <div class="page-header">
+                    <h2 data-i18n="settings.title">Settings</h2>
+                </div>
+                
+                <div class="settings-layout">
+                    <div class="settings-nav">
+                        <div class="settings-nav-item active" data-settings="profile">
+                            <i class="fas fa-user"></i>
+                            <span data-i18n="settings.profile">Profile</span>
+                        </div>
+                        <div class="settings-nav-item" data-settings="preferences">
+                            <i class="fas fa-sliders-h"></i>
+                            <span data-i18n="settings.preferences">Preferences</span>
+                        </div>
+                        <div class="settings-nav-item" data-settings="gdpr">
+                            <i class="fas fa-shield-alt"></i>
+                            <span data-i18n="settings.gdpr">GDPR & Privacy</span>
+                        </div>
+                        <div class="settings-nav-item" data-settings="notifications">
+                            <i class="fas fa-bell"></i>
+                            <span data-i18n="settings.notifications">Notifications</span>
+                        </div>
                     </div>
-                    <div class="setting-group">
-                        <h3 data-i18n="settings.language">Language</h3>
-                        <select id="settings-language" class="language-selector">
-                            <option value="en">English</option>
-                            <option value="pl">Polski</option>
-                        </select>
+                    
+                    <div class="settings-content">
+                        <!-- Profile Settings -->
+                        <div class="settings-section active" id="settings-profile">
+                            <h3 data-i18n="settings.profile_title">Profile Settings</h3>
+                            <p data-i18n="settings.profile_desc">Manage your account information and preferences</p>
+                            
+                            <div class="profile-card">
+                                <div class="profile-avatar" id="settings-avatar">U</div>
+                                <div class="profile-info">
+                                    <h3 id="settings-user-name">User Name</h3>
+                                    <p id="settings-user-email">user@example.com</p>
+                                    <span class="role-badge" id="settings-user-role">Lawyer</span>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <h4 data-i18n="settings.account">Account Actions</h4>
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.change_password">Change Password</label>
+                                        <small data-i18n="settings.change_password_desc">Update your account password</small>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm">
+                                        <i class="fas fa-key"></i>
+                                        <span data-i18n="settings.change">Change</span>
+                                    </button>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.logout">Logout</label>
+                                        <small data-i18n="settings.logout_desc">Sign out of your account</small>
+                                    </div>
+                                    <button class="btn btn-danger btn-sm" id="logout-btn">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        <span data-i18n="settings.logout">Logout</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Preferences Settings -->
+                        <div class="settings-section" id="settings-preferences">
+                            <h3 data-i18n="settings.preferences_title">Preferences</h3>
+                            <p data-i18n="settings.preferences_desc">Customize your experience</p>
+                            
+                            <div class="setting-group">
+                                <h4 data-i18n="settings.language">Language</h4>
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.interface_language">Interface Language</label>
+                                        <small data-i18n="settings.interface_language_desc">Choose your preferred language</small>
+                                    </div>
+                                    <select id="settings-language" class="language-selector">
+                                        <option value="en">English</option>
+                                        <option value="pl">Polski</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <h4 data-i18n="settings.ai_settings">AI Settings</h4>
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.default_persona">Default AI Persona</label>
+                                        <small data-i18n="settings.default_persona_desc">Choose which legal specialty to use by default</small>
+                                    </div>
+                                    <select id="settings-persona" class="language-selector">
+                                        <option value="commercial" data-i18n="chatbot.commercial_law">Commercial Law</option>
+                                        <option value="personal" data-i18n="chatbot.personal_law">Personal Law</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- GDPR Settings -->
+                        <div class="settings-section" id="settings-gdpr">
+                            <h3 data-i18n="settings.gdpr_title">GDPR & Data Management</h3>
+                            <p data-i18n="settings.gdpr_desc">Manage your data and privacy settings</p>
+                            
+                            <div class="setting-group">
+                                <h4 data-i18n="settings.data_export">Data Export</h4>
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.export_data">Export My Data</label>
+                                        <small data-i18n="settings.export_data_desc">Download all your data in JSON format</small>
+                                    </div>
+                                    <button id="export-data-btn" class="btn btn-secondary btn-sm">
+                                        <i class="fas fa-download"></i>
+                                        <span data-i18n="settings.export">Export</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <h4 data-i18n="settings.data_deletion">Data Deletion</h4>
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.delete_data">Delete My Data</label>
+                                        <small data-i18n="settings.delete_data_desc">Permanently delete all your data. This action cannot be undone.</small>
+                                    </div>
+                                    <button id="delete-data-btn" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                        <span data-i18n="settings.delete">Delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notifications Settings -->
+                        <div class="settings-section" id="settings-notifications">
+                            <h3 data-i18n="settings.notifications_title">Notifications</h3>
+                            <p data-i18n="settings.notifications_desc">Manage how you receive notifications</p>
+                            
+                            <div class="setting-group">
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.email_notifications">Email Notifications</label>
+                                        <small data-i18n="settings.email_notifications_desc">Receive important updates via email</small>
+                                    </div>
+                                    <input type="checkbox" id="email-notifications" checked>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label data-i18n="settings.document_notifications">Document Updates</label>
+                                        <small data-i18n="settings.document_notifications_desc">Get notified when documents are processed</small>
+                                    </div>
+                                    <input type="checkbox" id="document-notifications" checked>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
         </div>
     </div>
 
-    <!-- Hidden file input -->
-    <input type="file" id="file-input" style="display: none;" accept=".pdf,.docx">
+    <!-- Modals -->
+    <!-- Document Upload Modal -->
+    <div class="modal-overlay" id="upload-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 data-i18n="documents.upload_title">Upload Document</h3>
+                <button class="modal-close" id="close-upload-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label data-i18n="documents.document_name">Document Name</label>
+                    <input type="text" id="document-name" placeholder="Enter document name">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.file">File</label>
+                    <input type="file" id="file-input" accept=".pdf,.docx">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.priority">Priority</label>
+                    <select id="document-priority">
+                        <option value="low" data-i18n="documents.low">Low</option>
+                        <option value="medium" data-i18n="documents.medium">Medium</option>
+                        <option value="urgent" data-i18n="documents.urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.status">Status</label>
+                    <select id="document-status">
+                        <option value="started" data-i18n="documents.started">Started</option>
+                        <option value="in-progress" data-i18n="documents.in_progress">In Progress</option>
+                        <option value="done" data-i18n="documents.done">Done</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.tags">Tags</label>
+                    <input type="text" id="document-tags" placeholder="Enter tags separated by commas">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.assign_case">Assign to Case</label>
+                    <select id="document-case">
+                        <option value="">None</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-upload">
+                    <span data-i18n="common.cancel">Cancel</span>
+                </button>
+                <button class="btn btn-primary" id="confirm-upload">
+                    <i class="fas fa-upload"></i>
+                    <span data-i18n="documents.upload">Upload</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Case Modal -->
+    <div class="modal-overlay" id="case-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 data-i18n="documents.create_case_title">Create New Case</h3>
+                <button class="modal-close" id="close-case-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label data-i18n="cases.title">Case Title</label>
+                    <input type="text" id="case-title" placeholder="Enter case title">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="cases.description">Description</label>
+                    <textarea id="case-description" placeholder="Enter case description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.priority">Priority</label>
+                    <select id="case-priority">
+                        <option value="low" data-i18n="documents.low">Low</option>
+                        <option value="medium" data-i18n="documents.medium">Medium</option>
+                        <option value="urgent" data-i18n="documents.urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.status">Status</label>
+                    <select id="case-status">
+                        <option value="started" data-i18n="documents.started">Started</option>
+                        <option value="in-progress" data-i18n="documents.in_progress">In Progress</option>
+                        <option value="done" data-i18n="documents.done">Done</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-case">
+                    <span data-i18n="common.cancel">Cancel</span>
+                </button>
+                <button class="btn btn-primary" id="confirm-case">
+                    <i class="fas fa-folder-plus"></i>
+                    <span data-i18n="documents.create_case">Create Case</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Document Modal -->
+    <div class="modal-overlay" id="edit-document-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 data-i18n="documents.edit_title">Edit Document</h3>
+                <button class="modal-close" id="close-edit-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label data-i18n="documents.document_name">Document Name</label>
+                    <input type="text" id="edit-document-name">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.priority">Priority</label>
+                    <select id="edit-document-priority">
+                        <option value="low" data-i18n="documents.low">Low</option>
+                        <option value="medium" data-i18n="documents.medium">Medium</option>
+                        <option value="urgent" data-i18n="documents.urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.status">Status</label>
+                    <select id="edit-document-status">
+                        <option value="started" data-i18n="documents.started">Started</option>
+                        <option value="in-progress" data-i18n="documents.in_progress">In Progress</option>
+                        <option value="done" data-i18n="documents.done">Done</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="documents.tags">Tags</label>
+                    <input type="text" id="edit-document-tags">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-edit">
+                    <span data-i18n="common.cancel">Cancel</span>
+                </button>
+                <button class="btn btn-primary" id="confirm-edit">
+                    <i class="fas fa-save"></i>
+                    <span data-i18n="common.save">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
 
     <script src="js/i18n.js"></script>
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
-
