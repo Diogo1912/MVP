@@ -11,6 +11,9 @@ from documents.models import Document
 from analytics.models import UsageMetric
 import json
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationViewSet(viewsets.ModelViewSet):
@@ -141,20 +144,22 @@ class ChatView(APIView):
         
         # Get AI response
         try:
+            logger.info(f"Initializing AI service for user {user.email}")
             ai_service = AIService()
+            logger.info("AI service initialized successfully")
         except Exception as e:
             # AI service initialization failed
             import traceback
             error_msg = str(e)
-            print(f"AI Service Init Error: {error_msg}")
-            print(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"AI Service Init Error: {error_msg}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return Response(
                 {'error': f"AI service initialization failed: {error_msg}"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
         
         try:
-            print(f"Attempting chat completion for user {user.email}, persona: {persona}")
+            logger.info(f"Attempting chat completion for user {user.email}, persona: {persona}")
             response = ai_service.chat_completion(
                 messages=messages,
                 language=user.language,
@@ -162,7 +167,7 @@ class ChatView(APIView):
                 use_knowledge_base=use_knowledge_base,
                 document_context=document_context
             )
-            print(f"Chat completion successful, tokens used: {response.get('tokens_used', 0)}")
+            logger.info(f"Chat completion successful, tokens used: {response.get('tokens_used', 0)}")
             
             # Save AI message
             ai_message = Message.objects.create(
@@ -198,9 +203,9 @@ class ChatView(APIView):
         except Exception as e:
             import traceback
             error_msg = str(e)
-            print(f"AI Chat Completion Error: {error_msg}")
-            print(f"Full Traceback: {traceback.format_exc()}")
-            print(f"Error type: {type(e).__name__}")
+            logger.error(f"AI Chat Completion Error: {error_msg}")
+            logger.error(f"Full Traceback: {traceback.format_exc()}")
+            logger.error(f"Error type: {type(e).__name__}")
             
             # Return detailed error for debugging
             return Response(
