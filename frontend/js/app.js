@@ -190,6 +190,17 @@ function setupEventListeners() {
         showToast('success', 'Logged Out', 'You have been signed out');
     });
     
+    // AI Settings
+    document.getElementById('settings-temperature')?.addEventListener('input', function() {
+        const value = (this.value / 100).toFixed(1);
+        document.getElementById('temperature-value').textContent = value;
+    });
+    
+    document.getElementById('save-ai-settings-btn')?.addEventListener('click', saveAISettings);
+    
+    // Load AI settings on startup
+    loadAISettings();
+    
     // Chat
     document.getElementById('send-btn')?.addEventListener('click', sendMessage);
     document.getElementById('chat-input')?.addEventListener('keypress', (e) => {
@@ -470,11 +481,17 @@ async function loadDashboardData() {
             if (statProductivity) statProductivity.textContent = analytics.documents?.this_month || 0;
         }
         
+        // Load recent activity
+        await loadRecentActivity();
+        
         // Load documents
         await loadDocuments();
         
         // Load conversations
         await loadConversations();
+        
+        // Load cases for chat selector
+        await loadCasesForChatSelector();
     } catch (error) {
         console.error('Error loading dashboard:', error);
         // If auth error, redirect to login
@@ -482,6 +499,79 @@ async function loadDashboardData() {
             API.clearToken();
             showLogin();
         }
+    }
+}
+
+async function loadRecentActivity() {
+    try {
+        const [documents, cases, conversations] = await Promise.all([
+            API.getDocuments(),
+            API.getCases(),
+            API.getConversations()
+        ]);
+        
+        const activities = [];
+        
+        // Add documents
+        if (documents.results) {
+            documents.results.slice(0, 3).forEach(doc => {
+                activities.push({
+                    type: 'document',
+                    icon: 'file-alt',
+                    text: `Uploaded "${doc.title}"`,
+                    time: doc.created_at
+                });
+            });
+        }
+        
+        // Add cases
+        if (cases.results) {
+            cases.results.slice(0, 3).forEach(c => {
+                activities.push({
+                    type: 'case',
+                    icon: 'briefcase',
+                    text: `Created case "${c.title}"`,
+                    time: c.created_at
+                });
+            });
+        }
+        
+        // Add conversations
+        if (conversations.results) {
+            conversations.results.slice(0, 3).forEach(conv => {
+                activities.push({
+                    type: 'conversation',
+                    icon: 'comments',
+                    text: `Started conversation "${conv.title || 'Untitled'}"`,
+                    time: conv.created_at
+                });
+            });
+        }
+        
+        // Sort by time (most recent first)
+        activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+        
+        const container = document.getElementById('recent-activity');
+        if (!container) return;
+        
+        if (activities.length === 0) {
+            container.innerHTML = '<p class="empty-state"><i class="fas fa-inbox"></i> Nothing to show</p>';
+            return;
+        }
+        
+        container.innerHTML = activities.slice(0, 10).map(activity => `
+            <div class="activity-item">
+                <div class="activity-icon ${activity.type}">
+                    <i class="fas fa-${activity.icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-text">${escapeHtml(activity.text)}</div>
+                    <div class="activity-time">${formatDate(activity.time)}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading recent activity:', error);
     }
 }
 
@@ -846,8 +936,8 @@ async function sendMessage() {
                             <button class="message-action-btn" onclick="regenerateResponse()">
                                 <i class="fas fa-redo"></i> ${t('chatbot.regenerate')}
                             </button>
-                            <button class="message-action-btn" onclick="downloadAsDocument('${response.message.id}')">
-                                <i class="fas fa-file-download"></i> ${t('chatbot.download')}
+                            <button class="message-action-btn" onclick="saveAsDocument('${response.message.id}', \`${escapeHtml(response.message.content)}\`)">
+                                <i class="fas fa-file-alt"></i> Save as Document
                             </button>
                         </div>
                     </div>
@@ -910,8 +1000,63 @@ function regenerateResponse() {
     }
 }
 
-function downloadAsDocument(messageId) {
-    showToast('info', 'Coming Soon', 'Document download will be available soon');
+async function saveAsDocument(messageId, content) {
+    // Create a modal to save the document
+    const title = prompt('Enter document title:');
+    if (!title) return;
+    
+    try {
+        const response = await API.generateDocument(content, title, 'docx');
+        if (response.document) {
+            showToast('success', 'Document Saved', `"${title}" has been saved to your documents`);
+            await loadDocuments();
+            
+            // Ask if they want to assign to a case
+            const selectedCase = document.getElementById('chat-case-selector')?.value;
+            if (selectedCase && confirm('Add this document to the assigned case?')) {
+                await API.updateDocument(response.document.id, { case: selectedCase });
+                showToast('success', 'Added to Case', 'Document added to case');
+            }
+        }
+    } catch (error) {
+        showToast('error', 'Error', 'Failed to save document: ' + error.message);
+    }
+}
+
+function loadAISettings() {
+    // Load AI settings from localStorage
+    const model = localStorage.getItem('ai_model') || 'gpt-4';
+    const temperature = localStorage.getItem('ai_temperature') || '70';
+    const verbosity = localStorage.getItem('ai_verbosity') || 'normal';
+    const customPrompt = localStorage.getItem('ai_custom_prompt') || '';
+    
+    const modelSelect = document.getElementById('settings-ai-model');
+    const tempSlider = document.getElementById('settings-temperature');
+    const tempValue = document.getElementById('temperature-value');
+    const verbositySelect = document.getElementById('settings-verbosity');
+    const promptTextarea = document.getElementById('settings-custom-prompt');
+    
+    if (modelSelect) modelSelect.value = model;
+    if (tempSlider) {
+        tempSlider.value = temperature;
+        if (tempValue) tempValue.textContent = (temperature / 100).toFixed(1);
+    }
+    if (verbositySelect) verbositySelect.value = verbosity;
+    if (promptTextarea) promptTextarea.value = customPrompt;
+}
+
+function saveAISettings() {
+    const model = document.getElementById('settings-ai-model')?.value;
+    const temperature = document.getElementById('settings-temperature')?.value;
+    const verbosity = document.getElementById('settings-verbosity')?.value;
+    const customPrompt = document.getElementById('settings-custom-prompt')?.value;
+    
+    localStorage.setItem('ai_model', model);
+    localStorage.setItem('ai_temperature', temperature);
+    localStorage.setItem('ai_verbosity', verbosity);
+    localStorage.setItem('ai_custom_prompt', customPrompt);
+    
+    showToast('success', 'Saved', 'AI settings saved successfully');
 }
 
 async function loadConversations() {
@@ -928,17 +1073,79 @@ async function loadConversations() {
         
         container.innerHTML = conversations.results.map(conv => `
             <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-id="${conv.id}">
-                <h4>${escapeHtml(conv.title || 'Conversation')}</h4>
-                <p>${formatDate(conv.updated_at)}</p>
+                <div class="conversation-content">
+                    <h4>${escapeHtml(conv.title || 'Conversation')}</h4>
+                    <p>${formatDate(conv.updated_at)}</p>
+                </div>
+                <button class="delete-conversation-btn" data-id="${conv.id}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         `).join('');
         
         // Add click events
         container.querySelectorAll('.conversation-item').forEach(item => {
-            item.addEventListener('click', () => loadConversation(item.dataset.id));
+            item.addEventListener('click', (e) => {
+                if (!e.target.closest('.delete-conversation-btn')) {
+                    loadConversation(item.dataset.id);
+                }
+            });
+        });
+        
+        // Add delete events
+        container.querySelectorAll('.delete-conversation-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm('Delete this conversation?')) {
+                    await deleteConversation(btn.dataset.id);
+                }
+            });
         });
     } catch (error) {
         console.error('Error loading conversations:', error);
+    }
+}
+
+async function deleteConversation(id) {
+    try {
+        await API.deleteConversation(id);
+        if (currentConversationId === parseInt(id)) {
+            currentConversationId = null;
+            document.getElementById('chat-messages').innerHTML = `
+                <div class="message ai-message animate-fadeIn">
+                    <div class="message-wrapper">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <strong>GOLEXAI</strong>
+                            <p data-i18n="chatbot.welcome">Hello! I'm your AI legal assistant. How can I help you today?</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        await loadConversations();
+        showToast('success', 'Deleted', 'Conversation deleted successfully');
+    } catch (error) {
+        showToast('error', 'Error', 'Failed to delete conversation');
+    }
+}
+
+async function loadCasesForChatSelector() {
+    try {
+        const cases = await API.getCases();
+        const selector = document.getElementById('chat-case-selector');
+        if (!selector) return;
+        
+        selector.innerHTML = '<option value="">No case assigned</option>';
+        if (cases.results && cases.results.length > 0) {
+            cases.results.forEach(c => {
+                selector.innerHTML += `<option value="${c.id}">${escapeHtml(c.title)}</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading cases for selector:', error);
     }
 }
 

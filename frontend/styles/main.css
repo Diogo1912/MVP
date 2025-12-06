@@ -604,6 +604,7 @@ body {
     grid-template-columns: 280px 1fr;
     gap: 1.5rem;
     height: calc(100vh - 180px);
+    max-height: calc(100vh - 180px);
     min-height: 500px;
 }
 
@@ -630,6 +631,12 @@ body {
     color: var(--text-primary);
 }
 
+.case-selector-container {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 .conversations-list {
     flex: 1;
     overflow-y: auto;
@@ -639,6 +646,10 @@ body {
 }
 
 .conversation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     padding: 0.875rem 1rem;
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -653,6 +664,11 @@ body {
 .conversation-item.active {
     background-color: var(--bg-dark);
     color: var(--text-light);
+}
+
+.conversation-content {
+    flex: 1;
+    min-width: 0;
 }
 
 .conversation-item h4 {
@@ -671,6 +687,31 @@ body {
 
 .conversation-item.active p {
     color: rgba(255, 255, 255, 0.7);
+}
+
+.delete-conversation-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    opacity: 0;
+}
+
+.conversation-item:hover .delete-conversation-btn {
+    opacity: 1;
+}
+
+.delete-conversation-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
 }
 
 /* Chat Main Area */
@@ -881,6 +922,7 @@ body {
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
 }
 
 .chat-input-top {
@@ -2222,8 +2264,8 @@ body {
     flex-shrink: 0;
 }
 
-.activity-icon.doc { background: #dbeafe; color: #2563eb; }
-.activity-icon.ai { background: #ede9fe; color: #7c3aed; }
+.activity-icon.document { background: #dbeafe; color: #2563eb; }
+.activity-icon.conversation { background: #ede9fe; color: #7c3aed; }
 .activity-icon.case { background: #d1fae5; color: #059669; }
 
 .activity-content {
@@ -2317,6 +2359,47 @@ body {
 .empty-state i {
     font-size: 1.5rem;
     opacity: 0.5;
+}
+
+/* Slider */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 200px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--bg-input);
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-dark);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-dark);
+    cursor: pointer;
+    border: none;
+    transition: all var(--transition-fast);
+}
+
+.slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
 }
 
 /* Mobile responsive for analytics */

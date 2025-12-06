@@ -206,6 +206,15 @@
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
+                        
+                        <!-- Case Selector -->
+                        <div class="case-selector-container">
+                            <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Assign to Case (optional)</label>
+                            <select id="chat-case-selector" class="language-selector" style="width: 100%; font-size: 0.85rem;">
+                                <option value="">No case assigned</option>
+                            </select>
+                        </div>
+                        
                         <div class="conversations-list" id="conversations-list">
                             <p class="empty-state"><i class="fas fa-comments"></i> No conversations yet</p>
                         </div>
@@ -613,6 +622,7 @@
                             
                             <div class="setting-group">
                                 <h4 data-i18n="settings.ai_settings">AI Settings</h4>
+                                
                                 <div class="setting-row">
                                     <div class="setting-info">
                                         <label data-i18n="settings.default_persona">Default AI Persona</label>
@@ -622,6 +632,59 @@
                                         <option value="commercial" data-i18n="chatbot.commercial_law">Commercial Law</option>
                                         <option value="personal" data-i18n="chatbot.personal_law">Personal Law</option>
                                     </select>
+                                </div>
+                                
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label>AI Model</label>
+                                        <small>Choose which GPT model to use</small>
+                                    </div>
+                                    <select id="settings-ai-model" class="language-selector">
+                                        <option value="gpt-4">GPT-4 (Best quality)</option>
+                                        <option value="gpt-4-turbo">GPT-4 Turbo (Faster)</option>
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Economical)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label>Response Temperature</label>
+                                        <small>Lower = more focused, Higher = more creative (0.0 - 1.0)</small>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <input type="range" id="settings-temperature" min="0" max="100" value="70" class="slider">
+                                        <span id="temperature-value" style="min-width: 40px; font-weight: 600;">0.7</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <label>Response Length</label>
+                                        <small>Control how detailed AI responses should be</small>
+                                    </div>
+                                    <select id="settings-verbosity" class="language-selector">
+                                        <option value="concise">Concise</option>
+                                        <option value="normal" selected>Normal</option>
+                                        <option value="detailed">Detailed</option>
+                                        <option value="comprehensive">Comprehensive</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="setting-row" style="flex-direction: column; align-items: stretch;">
+                                    <div class="setting-info">
+                                        <label>Custom System Prompt</label>
+                                        <small>Add additional instructions to customize AI behavior</small>
+                                    </div>
+                                    <textarea id="settings-custom-prompt" class="chat-input" rows="4" 
+                                        placeholder="e.g., Always cite relevant laws and statutes, or Be extra careful with contract terms..." 
+                                        style="margin-top: 0.75rem; resize: vertical; min-height: 100px;"></textarea>
+                                </div>
+                                
+                                <div class="setting-row">
+                                    <button class="btn btn-primary" id="save-ai-settings-btn">
+                                        <i class="fas fa-save"></i>
+                                        Save AI Settings
+                                    </button>
                                 </div>
                             </div>
                         </div>
