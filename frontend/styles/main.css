@@ -467,12 +467,14 @@ body {
     gap: 1.5rem;
 }
 
-.welcome-card {
-    padding: 2rem;
+.welcome-section {
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
+    text-align: center;
     min-height: 180px;
+    padding: 2rem;
 }
 
 .current-time {
