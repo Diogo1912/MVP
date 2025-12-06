@@ -20,10 +20,11 @@ cmds = [
     ". /opt/venv/bin/activate && cd backend && python manage.py collectstatic --noinput"
 ]
 
-# Start command
+# Start command - explicitly set PATH to include venv
 [start]
-cmd = ". /opt/venv/bin/activate && cd backend && python manage.py migrate && gunicorn golexai.wsgi:application --bind 0.0.0.0:$PORT"
+cmd = "export PATH=/opt/venv/bin:$PATH && cd backend && python manage.py migrate && gunicorn golexai.wsgi:application --bind 0.0.0.0:$PORT"
 
 # Set environment variables
 [variables]
 PYTHONUNBUFFERED = "1"
+PATH = "/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
