@@ -140,6 +140,17 @@ class ChatView(APIView):
         # Get AI response
         try:
             ai_service = AIService()
+        except Exception as e:
+            # AI service initialization failed (likely missing API key)
+            error_msg = str(e)
+            if 'API key' in error_msg or 'OPENAI' in error_msg:
+                error_msg = "AI service not configured. Please set OPENAI_API_KEY in environment variables."
+            return Response(
+                {'error': error_msg},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        
+        try:
             response = ai_service.chat_completion(
                 messages=messages,
                 language=user.language,
@@ -180,8 +191,12 @@ class ChatView(APIView):
             })
             
         except Exception as e:
+            error_msg = str(e)
+            # Clean up error message for users
+            if 'API key' in error_msg:
+                error_msg = "AI service authentication failed. Please check OPENAI_API_KEY."
             return Response(
-                {'error': str(e)},
+                {'error': error_msg},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
