@@ -854,14 +854,16 @@ async function loadConversations() {
         const conversations = await API.getConversations();
         const container = document.getElementById('conversations-list');
         
+        if (!container) return;
+        
         if (!conversations.results || conversations.results.length === 0) {
-            container.innerHTML = '<p class="text-muted" style="padding: 1rem; text-align: center; font-size: 0.8rem;">No conversations yet</p>';
+            container.innerHTML = '<p class="empty-state"><i class="fas fa-comments"></i> No conversations yet</p>';
             return;
         }
         
         container.innerHTML = conversations.results.map(conv => `
             <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-id="${conv.id}">
-                <h4>${conv.title || 'Conversation'}</h4>
+                <h4>${escapeHtml(conv.title || 'Conversation')}</h4>
                 <p>${formatDate(conv.updated_at)}</p>
             </div>
         `).join('');

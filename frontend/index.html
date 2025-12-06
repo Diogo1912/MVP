@@ -177,63 +177,73 @@
                 <div class="analytics-card" style="margin-top: 1rem;">
                     <h3><i class="fas fa-clock"></i> Recent Activity</h3>
                     <div id="recent-activity" class="recent-activity-list">
-                        <p class="text-muted">Loading recent activity...</p>
+                        <p class="empty-state"><i class="fas fa-inbox"></i> Nothing to show</p>
                     </div>
                 </div>
             </section>
 
             <!-- Chatbot Section -->
             <section id="chatbot-section" class="section">
-                <div class="chat-container-full">
-                    <div class="chat-main">
-                        <div class="chat-header glass-card">
-                            <div class="chat-header-info">
-                                <h2 data-i18n="chatbot.title">AI Chatbot</h2>
-                            </div>
-                            <div class="chat-header-actions">
-                                <button class="btn btn-sm btn-outline" id="new-chat-btn">
-                                    <i class="fas fa-plus"></i>
-                                    <span data-i18n="chatbot.new_chat">New Chat</span>
-                                </button>
-                            </div>
+                <div class="chat-layout-with-sidebar">
+                    <!-- Conversations Sidebar -->
+                    <div class="chat-sidebar glass-effect">
+                        <div class="sidebar-header">
+                            <h3>Conversations</h3>
+                            <button class="btn btn-sm btn-primary" id="new-chat-btn">
+                                <i class="fas fa-plus"></i>
+                            </button>
                         </div>
-                        
-                        <div id="chat-messages" class="chat-messages">
-                            <!-- Welcome message -->
-                            <div class="message ai-message animate-fadeIn">
-                                <div class="message-wrapper">
-                                    <div class="message-avatar">
-                                        <i class="fas fa-robot"></i>
-                                    </div>
-                                    <div class="message-content">
-                                        <strong>GOLEXAI</strong>
-                                        <p data-i18n="chatbot.welcome">Hello! I'm your AI legal assistant. How can I help you today? I can analyze documents, draft legal texts, answer questions about commercial or personal law, and much more.</p>
+                        <div class="conversations-list" id="conversations-list">
+                            <p class="empty-state"><i class="fas fa-comments"></i> No conversations yet</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Chat Area -->
+                    <div class="chat-main-area">
+                        <div class="chat-main glass-effect">
+                            <div class="chat-header">
+                                <div class="chat-header-info">
+                                    <h2 data-i18n="chatbot.title">AI Chatbot</h2>
+                                </div>
+                            </div>
+                            
+                            <div id="chat-messages" class="chat-messages">
+                                <!-- Welcome message -->
+                                <div class="message ai-message animate-fadeIn">
+                                    <div class="message-wrapper">
+                                        <div class="message-avatar">
+                                            <i class="fas fa-robot"></i>
+                                        </div>
+                                        <div class="message-content">
+                                            <strong>GOLEXAI</strong>
+                                            <p data-i18n="chatbot.welcome">Hello! I'm your AI legal assistant. How can I help you today? I can analyze documents, draft legal texts, answer questions about commercial or personal law, and much more.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="chat-input-container glass-card">
-                            <div class="chat-input-top">
-                                <div class="persona-toggle">
-                                    <button class="persona-pill active" data-persona="commercial">
-                                        <i class="fas fa-building"></i>
-                                        <span data-i18n="chatbot.commercial_law">Commercial</span>
+                            
+                            <div class="chat-input-container">
+                                <div class="chat-input-top">
+                                    <div class="persona-toggle">
+                                        <button class="persona-pill active" data-persona="commercial">
+                                            <i class="fas fa-building"></i>
+                                            <span data-i18n="chatbot.commercial_law">Commercial</span>
+                                        </button>
+                                        <button class="persona-pill" data-persona="personal">
+                                            <i class="fas fa-user"></i>
+                                            <span data-i18n="chatbot.personal_law">Personal</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chat-input-wrapper">
+                                    <button class="attach-btn-left" id="inline-attach-btn" title="Attach document">
+                                        <i class="fas fa-plus"></i>
                                     </button>
-                                    <button class="persona-pill" data-persona="personal">
-                                        <i class="fas fa-user"></i>
-                                        <span data-i18n="chatbot.personal_law">Personal</span>
+                                    <textarea id="chat-input" class="chat-input" placeholder="Type your message..." data-i18n-placeholder="chatbot.input_placeholder" rows="1"></textarea>
+                                    <button id="send-btn" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane"></i>
                                     </button>
                                 </div>
-                            </div>
-                            <div class="chat-input-wrapper">
-                                <button class="attach-btn-left" id="inline-attach-btn" title="Attach document">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                                <textarea id="chat-input" class="chat-input" placeholder="Type your message..." data-i18n-placeholder="chatbot.input_placeholder" rows="1"></textarea>
-                                <button id="send-btn" class="btn btn-primary">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -290,6 +300,11 @@
                 <div class="page-header">
                     <h2 data-i18n="analytics.title">Analytics</h2>
                     <div class="page-header-actions">
+                        <div class="date-range-selector">
+                            <button class="date-btn active" data-range="7d">7D</button>
+                            <button class="date-btn" data-range="30d">30D</button>
+                            <button class="date-btn" data-range="90d">90D</button>
+                        </div>
                         <button class="btn btn-secondary">
                             <i class="fas fa-download"></i>
                             <span data-i18n="analytics.export">Export Report</span>
@@ -297,42 +312,202 @@
                     </div>
                 </div>
                 
-                <div class="analytics-grid">
-                    <div class="analytics-card">
-                        <h3><i class="fas fa-file-alt"></i> Document Activity</h3>
-                        <div class="analytics-chart" id="documents-chart">
-                            <div class="chart-bar" style="height: 40%;"></div>
-                            <div class="chart-bar" style="height: 60%;"></div>
-                            <div class="chart-bar" style="height: 80%;"></div>
-                            <div class="chart-bar" style="height: 45%;"></div>
-                            <div class="chart-bar" style="height: 90%;"></div>
-                            <div class="chart-bar" style="height: 70%;"></div>
-                            <div class="chart-bar" style="height: 55%;"></div>
+                <!-- Key Metrics Row -->
+                <div class="metrics-row">
+                    <div class="metric-card glass-effect">
+                        <div class="metric-icon blue"><i class="fas fa-file-alt"></i></div>
+                        <div class="metric-content">
+                            <span class="metric-value" id="metric-documents">0</span>
+                            <span class="metric-label">Total Documents</span>
+                            <span class="metric-change positive"><i class="fas fa-arrow-up"></i> 12%</span>
                         </div>
                     </div>
-                    <div class="analytics-card">
-                        <h3><i class="fas fa-brain"></i> AI Usage</h3>
-                        <div class="analytics-chart" id="ai-chart">
-                            <div class="chart-bar" style="height: 30%;"></div>
-                            <div class="chart-bar" style="height: 50%;"></div>
-                            <div class="chart-bar" style="height: 70%;"></div>
-                            <div class="chart-bar" style="height: 85%;"></div>
-                            <div class="chart-bar" style="height: 95%;"></div>
-                            <div class="chart-bar" style="height: 80%;"></div>
-                            <div class="chart-bar" style="height: 60%;"></div>
+                    <div class="metric-card glass-effect">
+                        <div class="metric-icon purple"><i class="fas fa-brain"></i></div>
+                        <div class="metric-content">
+                            <span class="metric-value" id="metric-queries">0</span>
+                            <span class="metric-label">AI Queries</span>
+                            <span class="metric-change positive"><i class="fas fa-arrow-up"></i> 28%</span>
                         </div>
                     </div>
-                    <div class="analytics-card">
-                        <h3><i class="fas fa-briefcase"></i> Case Progress</h3>
-                        <div id="case-progress">
-                            <p class="text-muted">Loading case data...</p>
+                    <div class="metric-card glass-effect">
+                        <div class="metric-icon green"><i class="fas fa-clock"></i></div>
+                        <div class="metric-content">
+                            <span class="metric-value" id="metric-time">24h</span>
+                            <span class="metric-label">Time Saved</span>
+                            <span class="metric-change positive"><i class="fas fa-arrow-up"></i> 15%</span>
                         </div>
                     </div>
-                    <div class="analytics-card">
-                        <h3><i class="fas fa-clock"></i> Time Saved</h3>
-                        <div id="time-saved">
-                            <p class="stat-value" style="font-size: 3rem;">24h</p>
-                            <p class="text-muted">Estimated time saved this month</p>
+                    <div class="metric-card glass-effect">
+                        <div class="metric-icon orange"><i class="fas fa-check-circle"></i></div>
+                        <div class="metric-content">
+                            <span class="metric-value" id="metric-completed">0</span>
+                            <span class="metric-label">Cases Completed</span>
+                            <span class="metric-change positive"><i class="fas fa-arrow-up"></i> 8%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <div class="chart-card glass-effect">
+                        <div class="chart-header">
+                            <h3>Document Activity</h3>
+                            <div class="chart-legend">
+                                <span class="legend-item"><span class="legend-dot uploaded"></span> Uploaded</span>
+                                <span class="legend-item"><span class="legend-dot generated"></span> AI Generated</span>
+                            </div>
+                        </div>
+                        <div class="line-chart" id="documents-line-chart">
+                            <svg viewBox="0 0 400 150" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#D4A574;stop-opacity:0.3"/>
+                                        <stop offset="100%" style="stop-color:#D4A574;stop-opacity:0"/>
+                                    </linearGradient>
+                                </defs>
+                                <path class="chart-area" d="M0,120 L57,100 L114,80 L171,90 L228,60 L285,40 L342,50 L400,30 L400,150 L0,150 Z" fill="url(#chartGradient)"/>
+                                <polyline class="chart-line" points="0,120 57,100 114,80 171,90 228,60 285,40 342,50 400,30" fill="none" stroke="#D4A574" stroke-width="2"/>
+                                <circle cx="0" cy="120" r="4" fill="#D4A574"/>
+                                <circle cx="57" cy="100" r="4" fill="#D4A574"/>
+                                <circle cx="114" cy="80" r="4" fill="#D4A574"/>
+                                <circle cx="171" cy="90" r="4" fill="#D4A574"/>
+                                <circle cx="228" cy="60" r="4" fill="#D4A574"/>
+                                <circle cx="285" cy="40" r="4" fill="#D4A574"/>
+                                <circle cx="342" cy="50" r="4" fill="#D4A574"/>
+                                <circle cx="400" cy="30" r="4" fill="#D4A574"/>
+                            </svg>
+                            <div class="chart-labels">
+                                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card glass-effect">
+                        <div class="chart-header">
+                            <h3>AI Usage by Type</h3>
+                        </div>
+                        <div class="donut-chart-container">
+                            <div class="donut-chart">
+                                <svg viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#eee" stroke-width="12"/>
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#D4A574" stroke-width="12" 
+                                            stroke-dasharray="125.6 251.2" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#0A0A0A" stroke-width="12" 
+                                            stroke-dasharray="75.36 251.2" stroke-dashoffset="-125.6" transform="rotate(-90 50 50)"/>
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#6B7280" stroke-width="12" 
+                                            stroke-dasharray="50.24 251.2" stroke-dashoffset="-200.96" transform="rotate(-90 50 50)"/>
+                                </svg>
+                                <div class="donut-center">
+                                    <span class="donut-value" id="donut-total">0</span>
+                                    <span class="donut-label">Total</span>
+                                </div>
+                            </div>
+                            <div class="donut-legend">
+                                <div class="donut-legend-item">
+                                    <span class="donut-dot" style="background: #D4A574;"></span>
+                                    <span>Chat Queries</span>
+                                    <span class="donut-percent">50%</span>
+                                </div>
+                                <div class="donut-legend-item">
+                                    <span class="donut-dot" style="background: #0A0A0A;"></span>
+                                    <span>Document Analysis</span>
+                                    <span class="donut-percent">30%</span>
+                                </div>
+                                <div class="donut-legend-item">
+                                    <span class="donut-dot" style="background: #6B7280;"></span>
+                                    <span>Document Generation</span>
+                                    <span class="donut-percent">20%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bottom Row -->
+                <div class="analytics-bottom-row">
+                    <div class="chart-card glass-effect">
+                        <div class="chart-header">
+                            <h3>Case Status Overview</h3>
+                        </div>
+                        <div id="case-status-chart" class="status-bars">
+                            <div class="status-bar-item">
+                                <div class="status-bar-info">
+                                    <span class="status-bar-label">Open</span>
+                                    <span class="status-bar-value" id="status-open">0</span>
+                                </div>
+                                <div class="status-bar-track">
+                                    <div class="status-bar-fill open" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="status-bar-item">
+                                <div class="status-bar-info">
+                                    <span class="status-bar-label">In Progress</span>
+                                    <span class="status-bar-value" id="status-progress">0</span>
+                                </div>
+                                <div class="status-bar-track">
+                                    <div class="status-bar-fill progress" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="status-bar-item">
+                                <div class="status-bar-info">
+                                    <span class="status-bar-label">Under Review</span>
+                                    <span class="status-bar-value" id="status-review">0</span>
+                                </div>
+                                <div class="status-bar-track">
+                                    <div class="status-bar-fill review" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="status-bar-item">
+                                <div class="status-bar-info">
+                                    <span class="status-bar-label">Completed</span>
+                                    <span class="status-bar-value" id="status-completed">0</span>
+                                </div>
+                                <div class="status-bar-track">
+                                    <div class="status-bar-fill completed" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card glass-effect">
+                        <div class="chart-header">
+                            <h3>Recent Activity</h3>
+                        </div>
+                        <div id="analytics-activity" class="activity-feed">
+                            <p class="empty-state"><i class="fas fa-inbox"></i> Nothing to show</p>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card glass-effect">
+                        <div class="chart-header">
+                            <h3>Top Document Types</h3>
+                        </div>
+                        <div class="document-types-list">
+                            <div class="doc-type-item">
+                                <div class="doc-type-icon pdf"><i class="fas fa-file-pdf"></i></div>
+                                <div class="doc-type-info">
+                                    <span class="doc-type-name">PDF Documents</span>
+                                    <span class="doc-type-count" id="type-pdf">0 files</span>
+                                </div>
+                                <div class="doc-type-bar"><div class="doc-type-fill" style="width: 0%;"></div></div>
+                            </div>
+                            <div class="doc-type-item">
+                                <div class="doc-type-icon docx"><i class="fas fa-file-word"></i></div>
+                                <div class="doc-type-info">
+                                    <span class="doc-type-name">Word Documents</span>
+                                    <span class="doc-type-count" id="type-docx">0 files</span>
+                                </div>
+                                <div class="doc-type-bar"><div class="doc-type-fill" style="width: 0%;"></div></div>
+                            </div>
+                            <div class="doc-type-item">
+                                <div class="doc-type-icon ai"><i class="fas fa-robot"></i></div>
+                                <div class="doc-type-info">
+                                    <span class="doc-type-name">AI Generated</span>
+                                    <span class="doc-type-count" id="type-ai">0 files</span>
+                                </div>
+                                <div class="doc-type-bar"><div class="doc-type-fill" style="width: 0%;"></div></div>
+                            </div>
                         </div>
                     </div>
                 </div>
