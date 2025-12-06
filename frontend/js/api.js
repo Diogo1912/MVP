@@ -16,7 +16,7 @@ class API {
         localStorage.removeItem('authToken');
     }
     
-    static async request(endpoint, options = {}) {
+    static async request(endpoint, options = {}, skipAuthRedirect = false) {
         const url = `${API_BASE_URL}${endpoint}`;
         const headers = {
             'Content-Type': 'application/json',
@@ -33,15 +33,18 @@ class API {
                 headers,
             });
             
-            if (response.status === 401) {
-                API.clearToken();
-                window.location.reload();
-                return;
-            }
-            
             // Handle empty responses
             const text = await response.text();
             const data = text ? JSON.parse(text) : {};
+            
+            if (response.status === 401 && !skipAuthRedirect) {
+                // Only clear token and redirect for protected routes, not login
+                if (authToken) {
+                    API.clearToken();
+                    // Don't reload - just throw error so the app can handle it
+                }
+                throw new Error(data.detail || data.error || 'Authentication required');
+            }
             
             if (!response.ok) {
                 throw new Error(data.error || data.detail || 'API Error');
@@ -60,13 +63,13 @@ class API {
             const data = await this.request('/auth/token/', {
                 method: 'POST',
                 body: JSON.stringify(credentials),
-            });
+            }, true); // skipAuthRedirect = true for login
             if (data && data.access) {
                 this.setToken(data.access);
             }
             return data;
         } catch (error) {
-            throw new Error(error.message || 'Invalid email or password');
+            throw new Error('Invalid email or password');
         }
     }
     
@@ -74,7 +77,7 @@ class API {
         return this.request('/auth/users/register/', {
             method: 'POST',
             body: JSON.stringify(userData),
-        });
+        }, true); // skipAuthRedirect = true for registration
     }
     
     static async getCurrentUser() {

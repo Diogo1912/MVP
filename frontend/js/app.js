@@ -12,13 +12,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // =================== AUTH ===================
 
-function checkAuth() {
+async function checkAuth() {
     const token = localStorage.getItem('authToken');
     if (token) {
         API.setToken(token);
-        showDashboard();
-        loadDashboardData();
-        loadUserProfile();
+        try {
+            // Verify token is still valid
+            await API.getCurrentUser();
+            showDashboard();
+            loadDashboardData();
+            loadUserProfile();
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            // Token is invalid, clear it and show login
+            API.clearToken();
+            showLogin();
+        }
     } else {
         showLogin();
     }
@@ -433,21 +442,30 @@ async function loadDashboardData() {
     try {
         // Load overview stats
         const analytics = await API.getAnalytics();
-        document.getElementById('stat-documents').textContent = analytics.documents?.total || 0;
-        document.getElementById('stat-cases').textContent = analytics.cases?.active || 0;
-        document.getElementById('stat-queries').textContent = analytics.ai_usage?.queries || 0;
-        document.getElementById('stat-productivity').textContent = analytics.documents?.this_month || 0;
+        if (analytics) {
+            const statDocs = document.getElementById('stat-documents');
+            const statCases = document.getElementById('stat-cases');
+            const statQueries = document.getElementById('stat-queries');
+            const statProductivity = document.getElementById('stat-productivity');
+            
+            if (statDocs) statDocs.textContent = analytics.documents?.total || 0;
+            if (statCases) statCases.textContent = analytics.cases?.active || 0;
+            if (statQueries) statQueries.textContent = analytics.ai_usage?.queries || 0;
+            if (statProductivity) statProductivity.textContent = analytics.documents?.this_month || 0;
+        }
         
         // Load documents
         await loadDocuments();
         
         // Load conversations
         await loadConversations();
-        
-        // Update persona badge
-        updatePersonaBadge();
     } catch (error) {
         console.error('Error loading dashboard:', error);
+        // If auth error, redirect to login
+        if (error.message?.includes('Authentication') || error.message?.includes('401')) {
+            API.clearToken();
+            showLogin();
+        }
     }
 }
 
