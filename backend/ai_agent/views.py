@@ -142,7 +142,10 @@ class ChatView(APIView):
             ai_service = AIService()
         except Exception as e:
             # AI service initialization failed (likely missing API key)
+            import traceback
             error_msg = str(e)
+            print(f"AI Service Init Error: {error_msg}")
+            print(f"Traceback: {traceback.format_exc()}")
             if 'API key' in error_msg or 'OPENAI' in error_msg:
                 error_msg = "AI service not configured. Please set OPENAI_API_KEY in environment variables."
             return Response(
@@ -191,7 +194,10 @@ class ChatView(APIView):
             })
             
         except Exception as e:
+            import traceback
             error_msg = str(e)
+            print(f"AI Chat Error: {error_msg}")
+            print(f"Traceback: {traceback.format_exc()}")
             # Clean up error message for users
             if 'API key' in error_msg:
                 error_msg = "AI service authentication failed. Please check OPENAI_API_KEY."
