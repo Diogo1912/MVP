@@ -56,12 +56,25 @@ class API {
     
     // Auth
     static async login(credentials) {
-        const data = await this.request('/auth/token/', {
+        try {
+            const data = await this.request('/auth/token/', {
+                method: 'POST',
+                body: JSON.stringify(credentials),
+            });
+            if (data && data.access) {
+                this.setToken(data.access);
+            }
+            return data;
+        } catch (error) {
+            throw new Error(error.message || 'Invalid email or password');
+        }
+    }
+    
+    static async register(userData) {
+        return this.request('/auth/users/register/', {
             method: 'POST',
-            body: JSON.stringify(credentials),
+            body: JSON.stringify(userData),
         });
-        this.setToken(data.access);
-        return data;
     }
     
     static async getCurrentUser() {

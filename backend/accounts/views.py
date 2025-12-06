@@ -1,18 +1,35 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 import json
-from .serializers import UserSerializer
+from .serializers import UserSerializer, UserRegistrationSerializer
 from analytics.models import AuditLog
 from documents.models import Document
 from cases.models import Case
 from ai_agent.models import Conversation, Message
 
 User = get_user_model()
+
+
+class RegisterView(APIView):
+    """User registration endpoint"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({
+                'id': user.id,
+                'email': user.email,
+                'message': 'User created successfully'
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):

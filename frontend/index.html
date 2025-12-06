@@ -63,12 +63,9 @@
                     <img src="images/logo-full.jpeg" alt="GOLEXAI" class="login-logo">
                     <h1 data-i18n="login.title">Welcome to GOLEXAI</h1>
                     <p data-i18n="login.subtitle">AI-powered legal tech platform</p>
-                    <button id="google-login-btn" class="btn btn-primary btn-lg">
-                        <i class="fab fa-google"></i>
-                        <span data-i18n="login.google">Sign in with Google</span>
-                    </button>
                     
-                    <div class="login-form">
+                    <!-- Login Form -->
+                    <div id="login-form-container" class="login-form">
                         <div class="form-group">
                             <label data-i18n="login.email">Email</label>
                             <input type="email" id="login-email" placeholder="your@email.com">
@@ -77,10 +74,46 @@
                             <label data-i18n="login.password">Password</label>
                             <input type="password" id="login-password" placeholder="••••••••">
                         </div>
-                        <button id="email-login-btn" class="btn btn-secondary btn-lg" style="width: 100%;">
+                        <button id="email-login-btn" class="btn btn-primary btn-lg" style="width: 100%;">
                             <i class="fas fa-sign-in-alt"></i>
                             <span data-i18n="login.signin">Sign In</span>
                         </button>
+                        <p style="text-align: center; margin-top: 1rem; color: var(--text-secondary);">
+                            <span data-i18n="login.no_account">Don't have an account?</span>
+                            <a href="#" id="show-register" style="color: var(--bg-dark); font-weight: 600;" data-i18n="login.register_link">Register</a>
+                        </p>
+                    </div>
+                    
+                    <!-- Register Form -->
+                    <div id="register-form-container" class="login-form" style="display: none;">
+                        <div class="form-group">
+                            <label data-i18n="login.email">Email</label>
+                            <input type="email" id="register-email" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="login.first_name">First Name</label>
+                            <input type="text" id="register-firstname" placeholder="John">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="login.last_name">Last Name</label>
+                            <input type="text" id="register-lastname" placeholder="Doe">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="login.password">Password</label>
+                            <input type="password" id="register-password" placeholder="••••••••">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="login.confirm_password">Confirm Password</label>
+                            <input type="password" id="register-password2" placeholder="••••••••">
+                        </div>
+                        <button id="register-btn" class="btn btn-primary btn-lg" style="width: 100%;">
+                            <i class="fas fa-user-plus"></i>
+                            <span data-i18n="login.register">Create Account</span>
+                        </button>
+                        <p style="text-align: center; margin-top: 1rem; color: var(--text-secondary);">
+                            <span data-i18n="login.have_account">Already have an account?</span>
+                            <a href="#" id="show-login" style="color: var(--bg-dark); font-weight: 600;" data-i18n="login.signin_link">Sign In</a>
+                        </p>
                     </div>
                 </div>
             </div>

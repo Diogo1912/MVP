@@ -15,7 +15,15 @@ const translations = {
             google: "Sign in with Google",
             email: "Email",
             password: "Password",
-            signin: "Sign In"
+            signin: "Sign In",
+            first_name: "First Name",
+            last_name: "Last Name",
+            confirm_password: "Confirm Password",
+            register: "Create Account",
+            no_account: "Don't have an account?",
+            register_link: "Register",
+            have_account: "Already have an account?",
+            signin_link: "Sign In"
         },
         overview: {
             title: "Overview",
@@ -170,7 +178,15 @@ const translations = {
             google: "Zaloguj się przez Google",
             email: "Email",
             password: "Hasło",
-            signin: "Zaloguj się"
+            signin: "Zaloguj się",
+            first_name: "Imię",
+            last_name: "Nazwisko",
+            confirm_password: "Potwierdź hasło",
+            register: "Utwórz konto",
+            no_account: "Nie masz konta?",
+            register_link: "Zarejestruj się",
+            have_account: "Masz już konto?",
+            signin_link: "Zaloguj się"
         },
         overview: {
             title: "Przegląd",

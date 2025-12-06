@@ -20,3 +20,29 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['language'] = user.language
         return token
 
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=6)
+    password2 = serializers.CharField(write_only=True, min_length=6)
+    
+    class Meta:
+        model = User
+        fields = ['email', 'password', 'password2', 'first_name', 'last_name', 'language']
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({'password': 'Passwords do not match'})
+        return attrs
+    
+    def create(self, validated_data):
+        validated_data.pop('password2')
+        password = validated_data.pop('password')
+        
+        # Use email as username
+        validated_data['username'] = validated_data['email'].split('@')[0]
+        
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+

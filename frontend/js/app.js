@@ -72,9 +72,17 @@ function setupEventListeners() {
         document.getElementById('nav-menu').classList.toggle('mobile-open');
     });
     
-    // Google login
-    document.getElementById('google-login-btn')?.addEventListener('click', () => {
-        showToast('info', 'Coming Soon', 'Google OAuth integration will be available soon');
+    // Toggle between login and register forms
+    document.getElementById('show-register')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('login-form-container').style.display = 'none';
+        document.getElementById('register-form-container').style.display = 'block';
+    });
+    
+    document.getElementById('show-login')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('register-form-container').style.display = 'none';
+        document.getElementById('login-form-container').style.display = 'block';
     });
     
     // Email login
@@ -95,6 +103,48 @@ function setupEventListeners() {
             showToast('success', 'Welcome!', 'Successfully logged in');
         } catch (error) {
             showToast('error', 'Login Failed', error.message);
+        }
+    });
+    
+    // Registration
+    document.getElementById('register-btn')?.addEventListener('click', async () => {
+        const email = document.getElementById('register-email').value;
+        const firstName = document.getElementById('register-firstname').value;
+        const lastName = document.getElementById('register-lastname').value;
+        const password = document.getElementById('register-password').value;
+        const password2 = document.getElementById('register-password2').value;
+        
+        if (!email || !password || !password2) {
+            showToast('error', 'Error', 'Please fill in all required fields');
+            return;
+        }
+        
+        if (password !== password2) {
+            showToast('error', 'Error', 'Passwords do not match');
+            return;
+        }
+        
+        if (password.length < 6) {
+            showToast('error', 'Error', 'Password must be at least 6 characters');
+            return;
+        }
+        
+        try {
+            await API.register({
+                email,
+                first_name: firstName,
+                last_name: lastName,
+                password,
+                password2
+            });
+            showToast('success', 'Account Created!', 'You can now sign in');
+            
+            // Switch to login form and pre-fill email
+            document.getElementById('register-form-container').style.display = 'none';
+            document.getElementById('login-form-container').style.display = 'block';
+            document.getElementById('login-email').value = email;
+        } catch (error) {
+            showToast('error', 'Registration Failed', error.message);
         }
     });
     
