@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     setupModals();
     setupSettingsNav();
+    updateTime();
+    setInterval(updateTime, 1000); // Update time every second
 });
 
 // =================== AUTH ===================
@@ -54,6 +56,7 @@ async function loadUserProfile() {
             
             const avatarEl = document.getElementById('user-avatar');
             const nameEl = document.getElementById('user-name');
+            const welcomeNameEl = document.getElementById('welcome-user-name');
             const settingsAvatarEl = document.getElementById('settings-avatar');
             const settingsNameEl = document.getElementById('settings-user-name');
             const settingsEmailEl = document.getElementById('settings-user-email');
@@ -61,6 +64,7 @@ async function loadUserProfile() {
             
             if (avatarEl) avatarEl.textContent = initial;
             if (nameEl) nameEl.textContent = userName;
+            if (welcomeNameEl) welcomeNameEl.textContent = userName;
             if (settingsAvatarEl) settingsAvatarEl.textContent = initial;
             if (settingsNameEl) settingsNameEl.textContent = user.first_name && user.last_name 
                 ? `${user.first_name} ${user.last_name}` 
@@ -71,6 +75,18 @@ async function loadUserProfile() {
     } catch (error) {
         console.error('Error loading user profile:', error);
         // Don't crash - just log the error
+    }
+}
+
+function updateTime() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timeString = `${hours}:${minutes}`;
+    
+    const timeEl = document.getElementById('current-time');
+    if (timeEl) {
+        timeEl.textContent = timeString;
     }
 }
 

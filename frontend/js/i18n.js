@@ -27,6 +27,7 @@ const translations = {
         },
         overview: {
             title: "Overview",
+            welcome: "Welcome",
             total_documents: "Total Documents",
             active_cases: "Active Cases",
             ai_queries: "AI Queries",
@@ -190,6 +191,7 @@ const translations = {
         },
         overview: {
             title: "Przegląd",
+            welcome: "Witaj",
             total_documents: "Wszystkie dokumenty",
             active_cases: "Aktywne sprawy",
             ai_queries: "Zapytania AI",

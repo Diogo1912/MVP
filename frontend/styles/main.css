@@ -454,11 +454,62 @@ body {
 /* STATS CARDS */
 /* =================== */
 
-.stats-grid {
+.overview-layout {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     margin-bottom: 2rem;
+}
+
+.overview-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.welcome-card {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 180px;
+}
+
+.current-time {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 0.75rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.welcome-message {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.welcome-message span:last-child {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.recent-activity-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.recent-activity-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 600px;
 }
 
 .stat-card {
@@ -1638,6 +1689,10 @@ body {
 /* =================== */
 
 @media (max-width: 1200px) {
+    .overview-layout {
+        grid-template-columns: 1fr;
+    }
+    
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1679,6 +1734,10 @@ body {
     
     #dashboard {
         padding: 1rem;
+    }
+    
+    .overview-layout {
+        grid-template-columns: 1fr;
     }
     
     .stats-grid {

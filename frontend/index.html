@@ -130,54 +130,67 @@
                     </div>
                 </div>
                 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h3 data-i18n="overview.total_documents">Total Documents</h3>
-                            <div class="stat-card-icon documents">
-                                <i class="fas fa-file-alt"></i>
+                <div class="overview-layout">
+                    <div class="overview-left">
+                        <!-- Welcome Card -->
+                        <div class="welcome-card glass-effect">
+                            <div class="current-time" id="current-time">00:00</div>
+                            <div class="welcome-message">
+                                <span data-i18n="overview.welcome">Welcome</span>, <span id="welcome-user-name">User</span>
                             </div>
                         </div>
-                        <p class="stat-value" id="stat-documents">0</p>
-                        <span class="stat-change"><i class="fas fa-arrow-up"></i> +12% this month</span>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h3 data-i18n="overview.active_cases">Active Cases</h3>
-                            <div class="stat-card-icon cases">
-                                <i class="fas fa-briefcase"></i>
+                        
+                        <!-- Stats Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <h3 data-i18n="overview.total_documents">Total Documents</h3>
+                                    <div class="stat-card-icon documents">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                </div>
+                                <p class="stat-value" id="stat-documents">0</p>
+                                <span class="stat-change"><i class="fas fa-arrow-up"></i> +12% this month</span>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <h3 data-i18n="overview.active_cases">Active Cases</h3>
+                                    <div class="stat-card-icon cases">
+                                        <i class="fas fa-briefcase"></i>
+                                    </div>
+                                </div>
+                                <p class="stat-value" id="stat-cases">0</p>
+                                <span class="stat-change"><i class="fas fa-arrow-up"></i> +3 new</span>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <h3 data-i18n="overview.ai_queries">AI Queries</h3>
+                                    <div class="stat-card-icon queries">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                </div>
+                                <p class="stat-value" id="stat-queries">0</p>
+                                <span class="stat-change"><i class="fas fa-arrow-up"></i> +28% this week</span>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-card-header">
+                                    <h3 data-i18n="overview.monthly_productivity">Monthly Productivity</h3>
+                                    <div class="stat-card-icon productivity">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                </div>
+                                <p class="stat-value" id="stat-productivity">0</p>
+                                <span class="stat-change negative"><i class="fas fa-arrow-down"></i> -5% vs last month</span>
                             </div>
                         </div>
-                        <p class="stat-value" id="stat-cases">0</p>
-                        <span class="stat-change"><i class="fas fa-arrow-up"></i> +3 new</span>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h3 data-i18n="overview.ai_queries">AI Queries</h3>
-                            <div class="stat-card-icon queries">
-                                <i class="fas fa-brain"></i>
-                            </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="analytics-card recent-activity-card">
+                        <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+                        <div id="recent-activity" class="recent-activity-list">
+                            <p class="empty-state"><i class="fas fa-inbox"></i> Nothing to show</p>
                         </div>
-                        <p class="stat-value" id="stat-queries">0</p>
-                        <span class="stat-change"><i class="fas fa-arrow-up"></i> +28% this week</span>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <h3 data-i18n="overview.monthly_productivity">Monthly Productivity</h3>
-                            <div class="stat-card-icon productivity">
-                                <i class="fas fa-chart-pie"></i>
-                            </div>
-                        </div>
-                        <p class="stat-value" id="stat-productivity">0</p>
-                        <span class="stat-change negative"><i class="fas fa-arrow-down"></i> -5% vs last month</span>
-                    </div>
-                </div>
-                
-                <!-- Recent Activity -->
-                <div class="analytics-card" style="margin-top: 1rem;">
-                    <h3><i class="fas fa-clock"></i> Recent Activity</h3>
-                    <div id="recent-activity" class="recent-activity-list">
-                        <p class="empty-state"><i class="fas fa-inbox"></i> Nothing to show</p>
                     </div>
                 </div>
             </section>
