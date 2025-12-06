@@ -109,8 +109,7 @@ class ChatView(APIView):
             conversation = Conversation.objects.create(
                 user=user,
                 language=user.language,
-                title=message_content[:50],
-                metadata={'persona': persona}
+                title=message_content[:50]
             )
         
         # Get document context if provided
