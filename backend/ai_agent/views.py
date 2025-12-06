@@ -2,13 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
+from django.conf import settings
 from .models import Conversation, Message, Prompt, KnowledgeBase
 from .services import AIService
 from documents.models import Document
 from analytics.models import UsageMetric
 import json
+import sys
 
 
 class ConversationViewSet(viewsets.ModelViewSet):
@@ -313,3 +315,44 @@ class GenerateDocumentView(APIView):
             
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AIHealthCheckView(APIView):
+    """Health check endpoint for AI service"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        health_status = {
+            'openai_installed': False,
+            'openai_key_set': False,
+            'ai_service_init': False,
+            'python_version': sys.version,
+            'errors': []
+        }
+        
+        # Check if openai is installed
+        try:
+            import openai
+            health_status['openai_installed'] = True
+            health_status['openai_version'] = openai.__version__
+        except ImportError as e:
+            health_status['errors'].append(f'OpenAI not installed: {str(e)}')
+        
+        # Check if API key is set
+        api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        if api_key:
+            health_status['openai_key_set'] = True
+            health_status['api_key_length'] = len(api_key)
+        else:
+            health_status['errors'].append('OPENAI_API_KEY not set in environment')
+        
+        # Try to initialize AI service
+        try:
+            ai_service = AIService()
+            health_status['ai_service_init'] = True
+        except Exception as e:
+            health_status['errors'].append(f'AI Service init failed: {str(e)}')
+        
+        # Return status
+        status_code = status.HTTP_200_OK if not health_status['errors'] else status.HTTP_503_SERVICE_UNAVAILABLE
+        return Response(health_status, status=status_code)

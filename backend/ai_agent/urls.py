@@ -7,7 +7,8 @@ from .views import (
     KnowledgeBaseViewSet, 
     ChatView,
     RegenerateView,
-    GenerateDocumentView
+    GenerateDocumentView,
+    AIHealthCheckView
 )
 
 router = DefaultRouter()
@@ -21,4 +22,5 @@ urlpatterns = [
     path('ai/chat/', ChatView.as_view(), name='chat'),
     path('ai/regenerate/', RegenerateView.as_view(), name='regenerate'),
     path('ai/generate-document/', GenerateDocumentView.as_view(), name='generate-document'),
+    path('ai/health/', AIHealthCheckView.as_view(), name='ai-health'),
 ]
