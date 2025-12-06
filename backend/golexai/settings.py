@@ -245,7 +245,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Security Settings
 if not DEBUG:
+    # Trust Railway's proxy for HTTPS detection
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # SSL redirect - Railway handles SSL termination
     SECURE_SSL_REDIRECT = True
+    
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
@@ -254,6 +259,14 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# Also add CSRF trusted origins for Railway
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.railway.app',
+    'https://*.up.railway.app',
+]
+if RAILWAY_DOMAIN:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RAILWAY_DOMAIN}')
 
 # GDPR Settings
 DATA_RETENTION_DAYS = 90
