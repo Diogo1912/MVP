@@ -41,17 +41,27 @@ async function loadUserProfile() {
         const user = await API.getCurrentUser();
         if (user) {
             const initial = (user.first_name?.[0] || user.email?.[0] || 'U').toUpperCase();
-            document.getElementById('user-avatar').textContent = initial;
-            document.getElementById('user-name').textContent = user.first_name || user.email?.split('@')[0] || 'User';
-            document.getElementById('settings-avatar').textContent = initial;
-            document.getElementById('settings-user-name').textContent = user.first_name && user.last_name 
+            const userName = user.first_name || user.email?.split('@')[0] || 'User';
+            
+            const avatarEl = document.getElementById('user-avatar');
+            const nameEl = document.getElementById('user-name');
+            const settingsAvatarEl = document.getElementById('settings-avatar');
+            const settingsNameEl = document.getElementById('settings-user-name');
+            const settingsEmailEl = document.getElementById('settings-user-email');
+            const settingsRoleEl = document.getElementById('settings-user-role');
+            
+            if (avatarEl) avatarEl.textContent = initial;
+            if (nameEl) nameEl.textContent = userName;
+            if (settingsAvatarEl) settingsAvatarEl.textContent = initial;
+            if (settingsNameEl) settingsNameEl.textContent = user.first_name && user.last_name 
                 ? `${user.first_name} ${user.last_name}` 
-                : user.email?.split('@')[0] || 'User';
-            document.getElementById('settings-user-email').textContent = user.email || '';
-            document.getElementById('settings-user-role').textContent = user.role || 'Lawyer';
+                : userName;
+            if (settingsEmailEl) settingsEmailEl.textContent = user.email || '';
+            if (settingsRoleEl) settingsRoleEl.textContent = user.role || 'Lawyer';
         }
     } catch (error) {
         console.error('Error loading user profile:', error);
+        // Don't crash - just log the error
     }
 }
 
@@ -170,15 +180,20 @@ function setupEventListeners() {
         this.style.height = Math.min(this.scrollHeight, 200) + 'px';
     });
     
-    // Persona selector
-    document.querySelectorAll('.persona-option').forEach(btn => {
+    // Persona selector (pills in chat input)
+    document.querySelectorAll('.persona-pill').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.persona-option').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.persona-pill').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentPersona = btn.dataset.persona;
             localStorage.setItem('ai_persona', currentPersona);
-            updatePersonaBadge();
         });
+    });
+    
+    // Initialize persona pills on load
+    const savedPersona = localStorage.getItem('ai_persona') || 'commercial';
+    document.querySelectorAll('.persona-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.persona === savedPersona);
     });
     
     // New chat
