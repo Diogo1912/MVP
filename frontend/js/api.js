@@ -47,6 +47,14 @@ class API {
             }
             
             if (!response.ok) {
+                // Handle validation errors from Django REST Framework
+                if (typeof data === 'object' && data !== null && !data.error && !data.detail) {
+                    // DRF validation errors come as {field: [errors]}
+                    const errorMessages = Object.entries(data)
+                        .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+                        .join('; ');
+                    throw new Error(errorMessages || 'Validation Error');
+                }
                 throw new Error(data.error || data.detail || 'API Error');
             }
             
