@@ -814,23 +814,29 @@ body {
     box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
 }
 
-.attach-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
+.attach-btn-left {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    color: var(--text-secondary);
     cursor: pointer;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all var(--transition-fast);
+    flex-shrink: 0;
 }
 
-.attach-btn:hover {
+.attach-btn-left:hover {
     color: var(--text-primary);
-    background-color: var(--border-light);
+    background-color: var(--bg-input);
+    border-color: var(--text-muted);
+}
+
+.attach-btn-left i {
+    font-size: 1rem;
 }
 
 #send-btn {

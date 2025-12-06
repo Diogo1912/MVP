@@ -83,7 +83,10 @@ class AIService:
     """Service for interacting with OpenAI GPT API"""
     
     def __init__(self):
-        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        api_key = getattr(settings, 'OPENAI_API_KEY', None)
+        if not api_key:
+            raise Exception("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.")
+        self.client = openai.OpenAI(api_key=api_key)
     
     def get_active_prompt(self, prompt_name, language='pl'):
         """Get the active version of a prompt"""
