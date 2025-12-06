@@ -74,7 +74,7 @@ class API {
     }
     
     static async register(userData) {
-        return this.request('/auth/users/register/', {
+        return this.request('/auth/register/', {
             method: 'POST',
             body: JSON.stringify(userData),
         }, true); // skipAuthRedirect = true for registration
