@@ -1,25 +1,64 @@
 """
 URL configuration for golexai project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.conf.urls.i18n import i18n_patterns
+from django.views.generic import TemplateView
+from django.http import HttpResponse
+import os
+
+def serve_frontend(request, path=''):
+    """Serve the frontend files"""
+    frontend_dir = settings.BASE_DIR.parent / 'frontend'
+    
+    if not path or path == '/':
+        file_path = frontend_dir / 'index.html'
+    else:
+        file_path = frontend_dir / path
+    
+    # Security: prevent directory traversal
+    try:
+        file_path = file_path.resolve()
+        if not str(file_path).startswith(str(frontend_dir.resolve())):
+            return HttpResponse('Forbidden', status=403)
+    except:
+        return HttpResponse('Not Found', status=404)
+    
+    if file_path.is_file():
+        content_type = 'text/html'
+        if path.endswith('.css'):
+            content_type = 'text/css'
+        elif path.endswith('.js'):
+            content_type = 'application/javascript'
+        elif path.endswith('.json'):
+            content_type = 'application/json'
+        elif path.endswith('.png'):
+            content_type = 'image/png'
+        elif path.endswith('.jpg') or path.endswith('.jpeg'):
+            content_type = 'image/jpeg'
+        elif path.endswith('.svg'):
+            content_type = 'image/svg+xml'
+        elif path.endswith('.ico'):
+            content_type = 'image/x-icon'
+        elif path.endswith('.woff'):
+            content_type = 'font/woff'
+        elif path.endswith('.woff2'):
+            content_type = 'font/woff2'
+        
+        with open(file_path, 'rb') as f:
+            return HttpResponse(f.read(), content_type=content_type)
+    
+    # If file not found, serve index.html for SPA routing
+    index_path = frontend_dir / 'index.html'
+    if index_path.is_file():
+        with open(index_path, 'rb') as f:
+            return HttpResponse(f.read(), content_type='text/html')
+    
+    return HttpResponse('Not Found', status=404)
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -28,6 +67,10 @@ urlpatterns = [
     path("api/", include("cases.urls")),
     path("api/", include("ai_agent.urls")),
     path("api/", include("analytics.urls")),
+    
+    # Serve frontend - catch all non-API routes
+    path('', serve_frontend, name='frontend_root'),
+    re_path(r'^(?!api/)(?!admin/)(?P<path>.*)$', serve_frontend, name='frontend'),
 ]
 
 # Serve media files in development
