@@ -823,14 +823,23 @@ function updateActivityChart(analytics) {
         return;
     }
     
-    // Determine how many points to show based on range
-    const maxPoints = currentAnalyticsRange === '7d' ? 7 : currentAnalyticsRange === '30d' ? 10 : 15;
-    const step = Math.max(1, Math.floor(data.length / maxPoints));
-    const sampledData = data.filter((_, i) => i % step === 0 || i === data.length - 1);
+    // Determine how many points to show based on range - fewer points = cleaner chart
+    const maxPoints = currentAnalyticsRange === '7d' ? 7 : currentAnalyticsRange === '30d' ? 8 : 10;
+    const step = Math.max(1, Math.ceil(data.length / maxPoints));
+    let sampledData = [];
+    
+    // Sample evenly but always include first and last
+    for (let i = 0; i < data.length; i += step) {
+        sampledData.push(data[i]);
+    }
+    // Always include the last data point
+    if (sampledData[sampledData.length - 1] !== data[data.length - 1]) {
+        sampledData.push(data[data.length - 1]);
+    }
     
     // Ensure we have at least 2 points for a line
-    if (sampledData.length < 2) {
-        sampledData.push(...data.slice(-2));
+    if (sampledData.length < 2 && data.length >= 2) {
+        sampledData = [data[0], data[data.length - 1]];
     }
     
     const chartWidth = 380;
@@ -879,24 +888,32 @@ function updateActivityChart(analytics) {
     document.getElementById('chart-line-uploaded')?.setAttribute('points', uploadedPoints);
     document.getElementById('chart-line-generated')?.setAttribute('points', generatedPoints);
     
-    // Add dots for uploaded (only show if there's activity)
+    // Only add dots on days with activity (not zero values)
     const dotsContainer = document.getElementById('chart-dots-uploaded');
     if (dotsContainer) {
-        dotsContainer.innerHTML = sampledData.map((d, i) => {
-            if ((d.uploaded || 0) === 0) return '';
-            const pt = getPoint(d.uploaded || 0, i);
-            return `<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="#D4A574" stroke="white" stroke-width="2"/>`;
-        }).join('');
+        dotsContainer.innerHTML = sampledData
+            .map((d, i) => {
+                const value = d.uploaded || 0;
+                if (value === 0) return ''; // Don't show dot for zero
+                const pt = getPoint(value, i);
+                return `<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="#D4A574" stroke="white" stroke-width="2"/>`;
+            })
+            .filter(s => s)
+            .join('');
     }
     
-    // Add dots for generated
+    // Only add dots for generated documents with activity
     const genDotsContainer = document.getElementById('chart-dots-generated');
     if (genDotsContainer) {
-        genDotsContainer.innerHTML = sampledData.map((d, i) => {
-            if ((d.generated || 0) === 0) return '';
-            const pt = getPoint(d.generated || 0, i);
-            return `<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="#3b82f6" stroke="white" stroke-width="2"/>`;
-        }).join('');
+        genDotsContainer.innerHTML = sampledData
+            .map((d, i) => {
+                const value = d.generated || 0;
+                if (value === 0) return ''; // Don't show dot for zero
+                const pt = getPoint(value, i);
+                return `<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="#3b82f6" stroke="white" stroke-width="2"/>`;
+            })
+            .filter(s => s)
+            .join('');
     }
     
     // Update date labels - show evenly spaced labels
