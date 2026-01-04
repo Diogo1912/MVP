@@ -5,6 +5,8 @@ let currentConversationCaseId = null; // Track case per conversation
 let currentEditingDocumentId = null;
 let currentEditingCaseId = null;
 let currentPreviewDocumentId = null;
+let currentGeneratedDocumentId = null; // Track the current document in this conversation for updates
+let currentGeneratedDocumentTitle = null;
 let currentAnalyticsRange = '7d';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -245,6 +247,8 @@ function setupEventListeners() {
     document.getElementById('new-chat-btn')?.addEventListener('click', () => {
         currentConversationId = null;
         currentConversationCaseId = null;
+        currentGeneratedDocumentId = null; // Reset document tracking for new chat
+        currentGeneratedDocumentTitle = null;
         
         // Clear case selector
         const caseSelector = document.getElementById('chat-case-selector');
@@ -1379,15 +1383,34 @@ async function sendMessage() {
         const aiContent = response.message.content;
         
         // Check if AI generated a document (contains document-like content)
-        const isDocumentGeneration = detectDocumentGeneration(message, aiContent);
+        const docDetection = detectDocumentGeneration(message, aiContent);
         
-        if (isDocumentGeneration) {
-            // Auto-save the document
-            const docTitle = extractDocumentTitle(message, aiContent);
-            
+        if (docDetection.isDocument) {
             try {
-                const docResponse = await API.generateDocument(aiContent, docTitle, 'docx', currentConversationCaseId);
-                const savedDoc = docResponse.document;
+                let savedDoc;
+                let docTitle;
+                let actionMessage;
+                
+                if (docDetection.isUpdate && currentGeneratedDocumentId) {
+                    // UPDATE existing document
+                    docTitle = currentGeneratedDocumentTitle || 'Updated Document';
+                    await API.updateDocument(currentGeneratedDocumentId, { content: aiContent });
+                    savedDoc = { id: currentGeneratedDocumentId };
+                    actionMessage = 'Document Updated';
+                    showToast('success', 'Document Updated', `"${docTitle}" has been updated`);
+                } else {
+                    // CREATE new document
+                    docTitle = extractDocumentTitle(message, aiContent);
+                    const docResponse = await API.generateDocument(aiContent, docTitle, 'docx', currentConversationCaseId);
+                    savedDoc = docResponse.document;
+                    // Track this document for future updates in this conversation
+                    currentGeneratedDocumentId = savedDoc.id;
+                    currentGeneratedDocumentTitle = docTitle;
+                    actionMessage = 'Document Generated';
+                    showToast('success', 'Document Generated', `"${docTitle}" has been created and saved`);
+                }
+                
+                const statusText = docDetection.isUpdate ? 'Document updated' : 'Document saved to your Documents section';
                 
                 // Show document preview widget in chat
                 messagesContainer.innerHTML += `
@@ -1398,7 +1421,7 @@ async function sendMessage() {
                             </div>
                             <div class="message-content">
                                 <strong>GOLEXAI</strong>
-                                <p style="margin-bottom: 1rem;">I've generated your document:</p>
+                                <p style="margin-bottom: 1rem;">${docDetection.isUpdate ? "I've updated your document:" : "I've generated your document:"}</p>
                                 
                                 <div class="document-preview-widget">
                                     <div class="doc-preview-header">
@@ -1407,7 +1430,7 @@ async function sendMessage() {
                                         </div>
                                         <div class="doc-preview-info">
                                             <h4>${escapeHtml(docTitle)}</h4>
-                                            <span class="doc-preview-meta">DOCX • Just now • Auto-saved</span>
+                                            <span class="doc-preview-meta">DOCX • Just now • ${docDetection.isUpdate ? 'Updated' : 'Auto-saved'}</span>
                                         </div>
                                     </div>
                                     <div class="doc-preview-content">
@@ -1428,14 +1451,13 @@ async function sendMessage() {
                                 
                                 <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">
                                     <i class="fas fa-check-circle" style="color: var(--success);"></i> 
-                                    Document saved to your Documents section
+                                    ${statusText}
                                 </p>
                             </div>
                         </div>
                     </div>
                 `;
                 
-                showToast('success', 'Document Generated', `"${docTitle}" has been created and saved`);
                 loadDocuments();
                 
             } catch (docError) {
@@ -1497,7 +1519,9 @@ function detectDocumentGeneration(userMessage, aiResponse) {
         'zaktualizuj', 'zmień', 'popraw', 'edytuj',
         'give it', 'give me', 'daj mi',
         'as pdf', 'as docx', 'jako pdf', 'jako docx',
-        'with the', 'with these', 'z tymi'
+        'with the', 'with these', 'z tymi',
+        'seller name', 'buyer name', 'nazwisko', 'imię',
+        'can you update', 'please update', 'now make', 'now change'
     ];
     
     const documentTypes = [
@@ -1543,13 +1567,20 @@ function detectDocumentGeneration(userMessage, aiResponse) {
                       lowerResponse.includes("as a text-based ai") ||
                       lowerResponse.includes("nie mogę");
     
-    if (isRefusal) return false;
+    if (isRefusal) return { isDocument: false, isUpdate: false };
     
-    // Trigger on: new doc request, update request with doc structure, or just doc structure with update keywords
-    return (hasDocKeyword && hasDocType) || 
-           (hasDocType && hasDocumentStructure) || 
-           (hasUpdateKeyword && hasDocumentStructure) ||
-           (hasDocumentStructure && aiResponse.length > 500); // Long structured response
+    // Check if this is an UPDATE to an existing document
+    const isUpdate = currentGeneratedDocumentId !== null && hasUpdateKeyword && hasDocumentStructure;
+    
+    // Check if this is a NEW document generation
+    const isNewDocument = (hasDocKeyword && hasDocType) || 
+                          (hasDocType && hasDocumentStructure) ||
+                          (hasDocumentStructure && aiResponse.length > 500); // Long structured response
+    
+    return {
+        isDocument: isNewDocument || isUpdate,
+        isUpdate: isUpdate
+    };
 }
 
 function extractDocumentTitle(userMessage, aiContent) {
@@ -1928,6 +1959,8 @@ async function loadConversation(conversationId) {
         const conversation = await API.getConversation(conversationId);
         currentConversationId = conversationId;
         currentConversationCaseId = conversation.case;
+        currentGeneratedDocumentId = null; // Reset document tracking when switching conversations
+        currentGeneratedDocumentTitle = null;
         
         // Update case selector if present
         const caseSelector = document.getElementById('chat-case-selector');
