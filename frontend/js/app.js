@@ -814,57 +814,78 @@ function updateDonutChart(analytics) {
 
 function updateActivityChart(analytics) {
     const data = analytics.documents_by_day || [];
-    if (data.length === 0) return;
+    if (data.length === 0) {
+        // Show empty state
+        const labelsContainer = document.getElementById('chart-date-labels');
+        if (labelsContainer) {
+            labelsContainer.innerHTML = '<span style="width: 100%; text-align: center; color: var(--text-muted);">No data for this period</span>';
+        }
+        return;
+    }
     
     // Determine how many points to show based on range
-    const maxPoints = currentAnalyticsRange === '7d' ? 7 : currentAnalyticsRange === '30d' ? 15 : 30;
+    const maxPoints = currentAnalyticsRange === '7d' ? 7 : currentAnalyticsRange === '30d' ? 10 : 15;
     const step = Math.max(1, Math.floor(data.length / maxPoints));
     const sampledData = data.filter((_, i) => i % step === 0 || i === data.length - 1);
     
-    const chartWidth = 400;
-    const chartHeight = 150;
-    const padding = 10;
+    // Ensure we have at least 2 points for a line
+    if (sampledData.length < 2) {
+        sampledData.push(...data.slice(-2));
+    }
     
-    // Find max value for scaling
-    const maxUploaded = Math.max(...sampledData.map(d => d.uploaded || 0), 1);
-    const maxGenerated = Math.max(...sampledData.map(d => d.generated || 0), 1);
-    const maxValue = Math.max(maxUploaded, maxGenerated, 1);
+    const chartWidth = 380;
+    const chartHeight = 140;
+    const paddingX = 20;
+    const paddingY = 20;
+    const chartInnerWidth = chartWidth - paddingX * 2;
+    const chartInnerHeight = chartHeight - paddingY * 2;
     
-    // Generate points for uploaded documents
+    // Find max value for scaling (minimum of 1 to avoid division by zero)
+    const allValues = sampledData.flatMap(d => [d.uploaded || 0, d.generated || 0]);
+    const maxValue = Math.max(...allValues, 1);
+    
+    // Helper function to calculate point coordinates
+    const getPoint = (value, index) => {
+        const x = paddingX + (index / Math.max(sampledData.length - 1, 1)) * chartInnerWidth;
+        const y = paddingY + chartInnerHeight - (value / maxValue) * chartInnerHeight;
+        return { x, y };
+    };
+    
+    // Generate smooth curve points for uploaded documents
     const uploadedPoints = sampledData.map((d, i) => {
-        const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
-        const y = chartHeight - padding - ((d.uploaded || 0) / maxValue) * (chartHeight - padding * 2);
-        return `${x},${y}`;
+        const pt = getPoint(d.uploaded || 0, i);
+        return `${pt.x},${pt.y}`;
     }).join(' ');
     
     // Generate points for generated documents
     const generatedPoints = sampledData.map((d, i) => {
-        const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
-        const y = chartHeight - padding - ((d.generated || 0) / maxValue) * (chartHeight - padding * 2);
-        return `${x},${y}`;
+        const pt = getPoint(d.generated || 0, i);
+        return `${pt.x},${pt.y}`;
     }).join(' ');
     
-    // Create area path for uploaded
-    const uploadedAreaPath = `M${padding},${chartHeight - padding} ` + 
-        sampledData.map((d, i) => {
-            const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
-            const y = chartHeight - padding - ((d.uploaded || 0) / maxValue) * (chartHeight - padding * 2);
-            return `L${x},${y}`;
-        }).join(' ') + 
-        ` L${chartWidth - padding},${chartHeight - padding} Z`;
+    // Create area path for uploaded (fill under the line)
+    const firstPt = getPoint(sampledData[0].uploaded || 0, 0);
+    const lastPt = getPoint(sampledData[sampledData.length - 1].uploaded || 0, sampledData.length - 1);
+    const uploadedAreaPath = `M${firstPt.x},${paddingY + chartInnerHeight} L${uploadedPoints.split(' ').join(' L')} L${lastPt.x},${paddingY + chartInnerHeight} Z`;
+    
+    // Update SVG viewBox for proper aspect ratio
+    const svg = document.getElementById('activity-chart-svg');
+    if (svg) {
+        svg.setAttribute('viewBox', `0 0 ${chartWidth} ${chartHeight}`);
+    }
     
     // Update SVG elements
     document.getElementById('chart-area-uploaded')?.setAttribute('d', uploadedAreaPath);
     document.getElementById('chart-line-uploaded')?.setAttribute('points', uploadedPoints);
     document.getElementById('chart-line-generated')?.setAttribute('points', generatedPoints);
     
-    // Add dots for uploaded
+    // Add dots for uploaded (only show if there's activity)
     const dotsContainer = document.getElementById('chart-dots-uploaded');
     if (dotsContainer) {
         dotsContainer.innerHTML = sampledData.map((d, i) => {
-            const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
-            const y = chartHeight - padding - ((d.uploaded || 0) / maxValue) * (chartHeight - padding * 2);
-            return `<circle cx="${x}" cy="${y}" r="4" fill="#D4A574"/>`;
+            if ((d.uploaded || 0) === 0) return '';
+            const pt = getPoint(d.uploaded || 0, i);
+            return `<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="#D4A574" stroke="white" stroke-width="2"/>`;
         }).join('');
     }
     
@@ -872,23 +893,31 @@ function updateActivityChart(analytics) {
     const genDotsContainer = document.getElementById('chart-dots-generated');
     if (genDotsContainer) {
         genDotsContainer.innerHTML = sampledData.map((d, i) => {
-            const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
-            const y = chartHeight - padding - ((d.generated || 0) / maxValue) * (chartHeight - padding * 2);
-            return `<circle cx="${x}" cy="${y}" r="4" fill="#3b82f6"/>`;
+            if ((d.generated || 0) === 0) return '';
+            const pt = getPoint(d.generated || 0, i);
+            return `<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="#3b82f6" stroke="white" stroke-width="2"/>`;
         }).join('');
     }
     
-    // Update date labels
+    // Update date labels - show evenly spaced labels
     const labelsContainer = document.getElementById('chart-date-labels');
     if (labelsContainer) {
-        // Show fewer labels for readability
-        const labelStep = Math.max(1, Math.floor(sampledData.length / 7));
-        labelsContainer.innerHTML = sampledData
-            .filter((_, i) => i % labelStep === 0 || i === sampledData.length - 1)
-            .map(d => {
-                const date = new Date(d.date);
-                return `<span>${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
-            }).join('');
+        const numLabels = Math.min(7, sampledData.length);
+        const labelStep = Math.max(1, Math.floor((sampledData.length - 1) / (numLabels - 1)));
+        const labelIndices = [];
+        for (let i = 0; i < sampledData.length; i += labelStep) {
+            labelIndices.push(i);
+        }
+        // Always include last index
+        if (!labelIndices.includes(sampledData.length - 1)) {
+            labelIndices.push(sampledData.length - 1);
+        }
+        
+        labelsContainer.innerHTML = labelIndices.map(i => {
+            const d = sampledData[i];
+            const date = new Date(d.date);
+            return `<span>${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+        }).join('');
     }
 }
 
@@ -1445,6 +1474,15 @@ function detectDocumentGeneration(userMessage, aiResponse) {
         'wygeneruj', 'stwórz', 'napisz', 'przygotuj', 'sporządź'
     ];
     
+    // Keywords for updating/modifying documents
+    const updateKeywords = [
+        'update', 'change', 'modify', 'edit', 'revise', 'correct', 'fix',
+        'zaktualizuj', 'zmień', 'popraw', 'edytuj',
+        'give it', 'give me', 'daj mi',
+        'as pdf', 'as docx', 'jako pdf', 'jako docx',
+        'with the', 'with these', 'z tymi'
+    ];
+    
     const documentTypes = [
         'contract', 'agreement', 'umowa', 'kontrakt',
         'letter', 'list', 'pismo',
@@ -1458,7 +1496,8 @@ function detectDocumentGeneration(userMessage, aiResponse) {
         'complaint', 'skarga', 'pozew',
         'motion', 'wniosek',
         'policy', 'regulamin',
-        'terms', 'warunki'
+        'terms', 'warunki',
+        'sales', 'sprzedaż'
     ];
     
     const lowerMessage = userMessage.toLowerCase();
@@ -1467,16 +1506,33 @@ function detectDocumentGeneration(userMessage, aiResponse) {
     // Check if user asked to generate a document
     const hasDocKeyword = documentKeywords.some(kw => lowerMessage.includes(kw));
     const hasDocType = documentTypes.some(dt => lowerMessage.includes(dt));
+    const hasUpdateKeyword = updateKeywords.some(kw => lowerMessage.includes(kw));
     
     // Check if response looks like a document (has structure)
     const hasDocumentStructure = 
         (aiResponse.includes('**') && aiResponse.split('**').length > 4) || // Has multiple bold headers
         (aiResponse.includes('§') || aiResponse.includes('Article') || aiResponse.includes('Artykuł')) ||
-        (aiResponse.match(/\d+\.\s/g)?.length > 3) || // Has numbered sections
+        (aiResponse.match(/\d+\.\d?\s/g)?.length > 2) || // Has numbered sections like 1. or 1.1
+        (aiResponse.match(/^\d+\./gm)?.length > 3) || // Multiple lines starting with numbers
         (lowerResponse.includes('parties') && lowerResponse.includes('agreement')) ||
-        (lowerResponse.includes('strony') && lowerResponse.includes('umow'));
+        (lowerResponse.includes('seller') && lowerResponse.includes('buyer')) ||
+        (lowerResponse.includes('strony') && lowerResponse.includes('umow')) ||
+        (lowerResponse.includes('this contract') || lowerResponse.includes('this agreement')) ||
+        (lowerResponse.includes('in witness whereof') || lowerResponse.includes('executed'));
     
-    return (hasDocKeyword && hasDocType) || (hasDocType && hasDocumentStructure);
+    // Detect if AI is refusing to create document (shouldn't show widget in this case)
+    const isRefusal = lowerResponse.includes("i'm unable to") || 
+                      lowerResponse.includes("i cannot") ||
+                      lowerResponse.includes("as a text-based ai") ||
+                      lowerResponse.includes("nie mogę");
+    
+    if (isRefusal) return false;
+    
+    // Trigger on: new doc request, update request with doc structure, or just doc structure with update keywords
+    return (hasDocKeyword && hasDocType) || 
+           (hasDocType && hasDocumentStructure) || 
+           (hasUpdateKeyword && hasDocumentStructure) ||
+           (hasDocumentStructure && aiResponse.length > 500); // Long structured response
 }
 
 function extractDocumentTitle(userMessage, aiContent) {

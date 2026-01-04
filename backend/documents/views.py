@@ -13,6 +13,7 @@ import os
 from docx import Document as DocxDocument
 from PyPDF2 import PdfReader
 import io
+import re
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -367,3 +368,96 @@ class DocumentViewSet(viewsets.ModelViewSet):
             'status': document.status,
             'tags': document.tags,
         })
+    
+    @action(detail=True, methods=['get'])
+    def export_to_pdf(self, request, pk=None):
+        """Export document content to PDF format"""
+        document = self.get_object()
+        
+        try:
+            from reportlab.lib.pagesizes import letter, A4
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+            
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                                   rightMargin=72, leftMargin=72,
+                                   topMargin=72, bottomMargin=72)
+            
+            styles = getSampleStyleSheet()
+            
+            # Custom styles
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=18,
+                alignment=TA_CENTER,
+                spaceAfter=30
+            )
+            
+            heading_style = ParagraphStyle(
+                'CustomHeading',
+                parent=styles['Heading2'],
+                fontSize=14,
+                spaceBefore=20,
+                spaceAfter=10
+            )
+            
+            body_style = ParagraphStyle(
+                'CustomBody',
+                parent=styles['Normal'],
+                fontSize=11,
+                alignment=TA_JUSTIFY,
+                spaceAfter=12
+            )
+            
+            story = []
+            
+            # Add title
+            story.append(Paragraph(document.title, title_style))
+            story.append(Spacer(1, 12))
+            
+            # Process content
+            content = document.content_text or document.analysis or ''
+            
+            for line in content.split('\n'):
+                line = line.strip()
+                if not line:
+                    story.append(Spacer(1, 6))
+                    continue
+                
+                # Clean up markdown
+                clean_line = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', line)
+                clean_line = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', clean_line)
+                
+                # Detect headers
+                if line.startswith('**') and line.endswith('**'):
+                    story.append(Paragraph(clean_line, heading_style))
+                elif re.match(r'^\d+\.', line):
+                    story.append(Paragraph(clean_line, body_style))
+                else:
+                    story.append(Paragraph(clean_line, body_style))
+            
+            doc.build(story)
+            buffer.seek(0)
+            
+            AuditLog.objects.create(
+                user=request.user,
+                action='document_access',
+                resource_type='document',
+                resource_id=document.id,
+                metadata={'action': 'export_pdf'}
+            )
+            
+            safe_title = re.sub(r'[^\w\s-]', '', document.title).strip().replace(' ', '_')[:50]
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{safe_title}.pdf"'
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': f'PDF export failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

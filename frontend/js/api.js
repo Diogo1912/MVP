@@ -328,6 +328,27 @@ class API {
         window.URL.revokeObjectURL(downloadUrl);
     }
     
+    static async exportToPdf(documentId) {
+        const url = `${API_BASE_URL}/documents/${documentId}/export_to_pdf/`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+            },
+        });
+        
+        if (!response.ok) {
+            throw new Error('PDF export failed');
+        }
+        
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `document-${documentId}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+    }
+    
     // Generate document from AI
     static async generateDocument(content, title, type = 'docx', caseId = null) {
         return this.request('/ai/generate-document/', {
