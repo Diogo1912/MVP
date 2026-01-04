@@ -48,20 +48,62 @@ class AnalyticsView(APIView):
         docx_count = Document.objects.filter(user=user, original_filename__iendswith='.docx').count()
         
         # Documents by day for chart
-        documents_by_day = list(Document.objects.filter(
+        from django.db.models import Q
+        documents_by_day_qs = Document.objects.filter(
             user=user,
             created_at__gte=date_from
         ).annotate(
             date=TruncDate('created_at')
         ).values('date').annotate(
-            count=Count('id'),
-            ai_count=Count('id', filter=lambda x: x.is_ai_generated)
-        ).order_by('date'))
+            total=Count('id'),
+            uploaded=Count('id', filter=Q(is_ai_generated=False)),
+            generated=Count('id', filter=Q(is_ai_generated=True))
+        ).order_by('date')
         
-        # Convert dates to strings
-        for item in documents_by_day:
-            if item.get('date'):
-                item['date'] = item['date'].isoformat()
+        # Build a complete timeline with all days
+        documents_by_day = []
+        current_date = date_from.date()
+        end_date = now.date()
+        day_data = {item['date']: item for item in documents_by_day_qs}
+        
+        while current_date <= end_date:
+            if current_date in day_data:
+                documents_by_day.append({
+                    'date': current_date.isoformat(),
+                    'total': day_data[current_date]['total'],
+                    'uploaded': day_data[current_date]['uploaded'],
+                    'generated': day_data[current_date]['generated'],
+                })
+            else:
+                documents_by_day.append({
+                    'date': current_date.isoformat(),
+                    'total': 0,
+                    'uploaded': 0,
+                    'generated': 0,
+                })
+            current_date += timedelta(days=1)
+        
+        # AI queries by day
+        ai_queries_by_day_qs = UsageMetric.objects.filter(
+            user=user,
+            metric_type='ai_query',
+            created_at__gte=date_from
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            count=Count('id')
+        ).order_by('date')
+        
+        ai_queries_by_day = []
+        current_date = date_from.date()
+        query_data = {item['date']: item['count'] for item in ai_queries_by_day_qs}
+        
+        while current_date <= end_date:
+            ai_queries_by_day.append({
+                'date': current_date.isoformat(),
+                'count': query_data.get(current_date, 0)
+            })
+            current_date += timedelta(days=1)
         
         # Case metrics
         total_cases = Case.objects.filter(lawyer=user).count()
@@ -154,6 +196,7 @@ class AnalyticsView(APIView):
                 'other_count': total_documents - pdf_count - docx_count,
             },
             'documents_by_day': documents_by_day,
+            'ai_queries_by_day': ai_queries_by_day,
             'cases': {
                 'total': total_cases,
                 'active': cases_by_status['open'] + cases_by_status['in_progress'],

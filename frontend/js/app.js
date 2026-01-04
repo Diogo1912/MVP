@@ -674,13 +674,11 @@ function updateAnalyticsPage(analytics) {
     if (metricTime) metricTime.textContent = `${analytics.time_saved?.hours || 0}h`;
     if (metricCompleted) metricCompleted.textContent = analytics.cases?.by_status?.closed || 0;
     
-    // Update donut chart total
-    const donutTotal = document.getElementById('donut-total');
-    if (donutTotal) {
-        donutTotal.textContent = (analytics.ai_usage?.queries || 0) + 
-            (analytics.ai_usage?.documents_analyzed || 0) + 
-            (analytics.ai_usage?.documents_generated || 0);
-    }
+    // Update donut chart
+    updateDonutChart(analytics);
+    
+    // Update line chart
+    updateActivityChart(analytics);
     
     // Update case status bars
     const statusOpen = document.getElementById('status-open');
@@ -696,15 +694,16 @@ function updateAnalyticsPage(analytics) {
     if (statusProgress) statusProgress.textContent = progressCount;
     if (statusCompleted) statusCompleted.textContent = closedCount;
     
-    // Update bars
+    // Update bars with animation
+    const maxCases = Math.max(openCount, progressCount, closedCount, 1);
     document.querySelectorAll('.status-bar-fill.open').forEach(bar => {
-        bar.style.width = `${(openCount / Math.max(totalCases, 1)) * 100}%`;
+        bar.style.width = `${(openCount / maxCases) * 100}%`;
     });
     document.querySelectorAll('.status-bar-fill.progress').forEach(bar => {
-        bar.style.width = `${(progressCount / Math.max(totalCases, 1)) * 100}%`;
+        bar.style.width = `${(progressCount / maxCases) * 100}%`;
     });
     document.querySelectorAll('.status-bar-fill.completed').forEach(bar => {
-        bar.style.width = `${(closedCount / Math.max(totalCases, 1)) * 100}%`;
+        bar.style.width = `${(closedCount / maxCases) * 100}%`;
     });
     
     // Update document types
@@ -717,13 +716,18 @@ function updateAnalyticsPage(analytics) {
     if (typeAi) typeAi.textContent = `${analytics.documents?.ai_generated || 0} files`;
     
     // Update document type bars
-    const totalDocs = analytics.documents?.total || 1;
+    const maxDocs = Math.max(
+        analytics.documents?.pdf_count || 0,
+        analytics.documents?.docx_count || 0,
+        analytics.documents?.ai_generated || 0,
+        1
+    );
     document.querySelectorAll('.doc-type-item').forEach((item, i) => {
         const fill = item.querySelector('.doc-type-fill');
         if (fill) {
-            if (i === 0) fill.style.width = `${((analytics.documents?.pdf_count || 0) / totalDocs) * 100}%`;
-            if (i === 1) fill.style.width = `${((analytics.documents?.docx_count || 0) / totalDocs) * 100}%`;
-            if (i === 2) fill.style.width = `${((analytics.documents?.ai_generated || 0) / totalDocs) * 100}%`;
+            if (i === 0) fill.style.width = `${((analytics.documents?.pdf_count || 0) / maxDocs) * 100}%`;
+            if (i === 1) fill.style.width = `${((analytics.documents?.docx_count || 0) / maxDocs) * 100}%`;
+            if (i === 2) fill.style.width = `${((analytics.documents?.ai_generated || 0) / maxDocs) * 100}%`;
         }
     });
     
@@ -745,6 +749,146 @@ function updateAnalyticsPage(analytics) {
                 </div>
             `).join('');
         }
+    }
+}
+
+function updateDonutChart(analytics) {
+    const queries = analytics.ai_usage?.queries || 0;
+    const analyzed = analytics.ai_usage?.documents_analyzed || 0;
+    const generated = analytics.ai_usage?.documents_generated || 0;
+    const total = queries + analyzed + generated;
+    
+    // Update total
+    const donutTotal = document.getElementById('donut-total');
+    if (donutTotal) donutTotal.textContent = total;
+    
+    if (total === 0) {
+        // Show empty state
+        document.getElementById('donut-queries')?.setAttribute('stroke-dasharray', '0 251.2');
+        document.getElementById('donut-analysis')?.setAttribute('stroke-dasharray', '0 251.2');
+        document.getElementById('donut-generation')?.setAttribute('stroke-dasharray', '0 251.2');
+        
+        document.getElementById('percent-queries').textContent = '0%';
+        document.getElementById('percent-analysis').textContent = '0%';
+        document.getElementById('percent-generation').textContent = '0%';
+        return;
+    }
+    
+    const circumference = 2 * Math.PI * 40; // 251.2
+    
+    // Calculate percentages
+    const queriesPercent = (queries / total) * 100;
+    const analyzedPercent = (analyzed / total) * 100;
+    const generatedPercent = (generated / total) * 100;
+    
+    // Calculate dash arrays
+    const queriesDash = (queriesPercent / 100) * circumference;
+    const analyzedDash = (analyzedPercent / 100) * circumference;
+    const generatedDash = (generatedPercent / 100) * circumference;
+    
+    // Update donut segments
+    const donutQueries = document.getElementById('donut-queries');
+    const donutAnalysis = document.getElementById('donut-analysis');
+    const donutGeneration = document.getElementById('donut-generation');
+    
+    if (donutQueries) {
+        donutQueries.setAttribute('stroke-dasharray', `${queriesDash} ${circumference}`);
+        donutQueries.setAttribute('stroke-dashoffset', '0');
+    }
+    
+    if (donutAnalysis) {
+        donutAnalysis.setAttribute('stroke-dasharray', `${analyzedDash} ${circumference}`);
+        donutAnalysis.setAttribute('stroke-dashoffset', `-${queriesDash}`);
+    }
+    
+    if (donutGeneration) {
+        donutGeneration.setAttribute('stroke-dasharray', `${generatedDash} ${circumference}`);
+        donutGeneration.setAttribute('stroke-dashoffset', `-${queriesDash + analyzedDash}`);
+    }
+    
+    // Update percentages
+    document.getElementById('percent-queries').textContent = `${Math.round(queriesPercent)}%`;
+    document.getElementById('percent-analysis').textContent = `${Math.round(analyzedPercent)}%`;
+    document.getElementById('percent-generation').textContent = `${Math.round(generatedPercent)}%`;
+}
+
+function updateActivityChart(analytics) {
+    const data = analytics.documents_by_day || [];
+    if (data.length === 0) return;
+    
+    // Determine how many points to show based on range
+    const maxPoints = currentAnalyticsRange === '7d' ? 7 : currentAnalyticsRange === '30d' ? 15 : 30;
+    const step = Math.max(1, Math.floor(data.length / maxPoints));
+    const sampledData = data.filter((_, i) => i % step === 0 || i === data.length - 1);
+    
+    const chartWidth = 400;
+    const chartHeight = 150;
+    const padding = 10;
+    
+    // Find max value for scaling
+    const maxUploaded = Math.max(...sampledData.map(d => d.uploaded || 0), 1);
+    const maxGenerated = Math.max(...sampledData.map(d => d.generated || 0), 1);
+    const maxValue = Math.max(maxUploaded, maxGenerated, 1);
+    
+    // Generate points for uploaded documents
+    const uploadedPoints = sampledData.map((d, i) => {
+        const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
+        const y = chartHeight - padding - ((d.uploaded || 0) / maxValue) * (chartHeight - padding * 2);
+        return `${x},${y}`;
+    }).join(' ');
+    
+    // Generate points for generated documents
+    const generatedPoints = sampledData.map((d, i) => {
+        const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
+        const y = chartHeight - padding - ((d.generated || 0) / maxValue) * (chartHeight - padding * 2);
+        return `${x},${y}`;
+    }).join(' ');
+    
+    // Create area path for uploaded
+    const uploadedAreaPath = `M${padding},${chartHeight - padding} ` + 
+        sampledData.map((d, i) => {
+            const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
+            const y = chartHeight - padding - ((d.uploaded || 0) / maxValue) * (chartHeight - padding * 2);
+            return `L${x},${y}`;
+        }).join(' ') + 
+        ` L${chartWidth - padding},${chartHeight - padding} Z`;
+    
+    // Update SVG elements
+    document.getElementById('chart-area-uploaded')?.setAttribute('d', uploadedAreaPath);
+    document.getElementById('chart-line-uploaded')?.setAttribute('points', uploadedPoints);
+    document.getElementById('chart-line-generated')?.setAttribute('points', generatedPoints);
+    
+    // Add dots for uploaded
+    const dotsContainer = document.getElementById('chart-dots-uploaded');
+    if (dotsContainer) {
+        dotsContainer.innerHTML = sampledData.map((d, i) => {
+            const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
+            const y = chartHeight - padding - ((d.uploaded || 0) / maxValue) * (chartHeight - padding * 2);
+            return `<circle cx="${x}" cy="${y}" r="4" fill="#D4A574"/>`;
+        }).join('');
+    }
+    
+    // Add dots for generated
+    const genDotsContainer = document.getElementById('chart-dots-generated');
+    if (genDotsContainer) {
+        genDotsContainer.innerHTML = sampledData.map((d, i) => {
+            const x = padding + (i / (sampledData.length - 1 || 1)) * (chartWidth - padding * 2);
+            const y = chartHeight - padding - ((d.generated || 0) / maxValue) * (chartHeight - padding * 2);
+            return `<circle cx="${x}" cy="${y}" r="4" fill="#3b82f6"/>`;
+        }).join('');
+    }
+    
+    // Update date labels
+    const labelsContainer = document.getElementById('chart-date-labels');
+    if (labelsContainer) {
+        // Show fewer labels for readability
+        const labelStep = Math.max(1, Math.floor(sampledData.length / 7));
+        labelsContainer.innerHTML = sampledData
+            .filter((_, i) => i % labelStep === 0 || i === sampledData.length - 1)
+            .map(d => {
+                const date = new Date(d.date);
+                return `<span>${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+            }).join('');
     }
 }
 
