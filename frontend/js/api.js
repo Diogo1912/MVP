@@ -329,10 +329,10 @@ class API {
     }
     
     // Generate document from AI
-    static async generateDocument(content, title, type = 'docx') {
+    static async generateDocument(content, title, type = 'docx', caseId = null) {
         return this.request('/ai/generate-document/', {
             method: 'POST',
-            body: JSON.stringify({ content, title, type }),
+            body: JSON.stringify({ content, title, type, case_id: caseId }),
         });
     }
 }

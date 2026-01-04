@@ -1186,44 +1186,180 @@ async function sendMessage() {
         // Remove typing indicator
         document.getElementById(typingId)?.remove();
         
-        // Add AI response with formatted text
-        const formattedContent = formatAIResponse(response.message.content);
-        messagesContainer.innerHTML += `
-            <div class="message ai-message animate-fadeIn">
-                <div class="message-wrapper">
-                    <div class="message-avatar">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div class="message-content">
-                        <strong>GOLEXAI</strong>
-                        <div class="formatted-text">${formattedContent}</div>
-                        <div class="message-actions">
-                            <button class="message-action-btn copy-btn" onclick="copyToClipboard(this)">
-                                <i class="fas fa-copy"></i> ${t('chatbot.copy')}
-                            </button>
-                            <button class="message-action-btn" onclick="regenerateResponse()">
-                                <i class="fas fa-redo"></i> ${t('chatbot.regenerate')}
-                            </button>
-                            <button class="message-action-btn" onclick="saveAsDocument('${response.message.id}', \`${escapeHtml(response.message.content)}\`)">
-                                <i class="fas fa-file-alt"></i> Save as Document
-                            </button>
+        const aiContent = response.message.content;
+        
+        // Check if AI generated a document (contains document-like content)
+        const isDocumentGeneration = detectDocumentGeneration(message, aiContent);
+        
+        if (isDocumentGeneration) {
+            // Auto-save the document
+            const docTitle = extractDocumentTitle(message, aiContent);
+            
+            try {
+                const docResponse = await API.generateDocument(aiContent, docTitle, 'docx', currentConversationCaseId);
+                const savedDoc = docResponse.document;
+                
+                // Show document preview widget in chat
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message animate-fadeIn">
+                        <div class="message-wrapper">
+                            <div class="message-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="message-content">
+                                <strong>GOLEXAI</strong>
+                                <p style="margin-bottom: 1rem;">I've generated your document:</p>
+                                
+                                <div class="document-preview-widget">
+                                    <div class="doc-preview-header">
+                                        <div class="doc-preview-icon">
+                                            <i class="fas fa-file-word"></i>
+                                        </div>
+                                        <div class="doc-preview-info">
+                                            <h4>${escapeHtml(docTitle)}</h4>
+                                            <span class="doc-preview-meta">DOCX • Just now • Auto-saved</span>
+                                        </div>
+                                    </div>
+                                    <div class="doc-preview-content">
+                                        ${formatAIResponse(aiContent.substring(0, 500))}${aiContent.length > 500 ? '...' : ''}
+                                    </div>
+                                    <div class="doc-preview-actions">
+                                        <button class="btn btn-primary" onclick="API.downloadDocument(${savedDoc.id})">
+                                            <i class="fas fa-download"></i> Download DOCX
+                                        </button>
+                                        <button class="btn btn-secondary" onclick="previewDocument(${savedDoc.id})">
+                                            <i class="fas fa-eye"></i> Full Preview
+                                        </button>
+                                        <button class="btn btn-outline copy-btn" onclick="copyToClipboard(this)" data-content="${escapeHtml(aiContent).replace(/"/g, '&quot;')}">
+                                            <i class="fas fa-copy"></i> Copy Text
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                                    <i class="fas fa-check-circle" style="color: var(--success);"></i> 
+                                    Document saved to your Documents section
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        `;
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        // If a document was generated, add it to documents section
-        if (response.generated_document) {
-            showToast('info', 'Document Created', 'A new document has been added to your Documents section');
-            loadDocuments();
+                `;
+                
+                showToast('success', 'Document Generated', `"${docTitle}" has been created and saved`);
+                loadDocuments();
+                
+            } catch (docError) {
+                // If auto-save fails, show regular response with save button
+                showRegularAIResponse(messagesContainer, response, aiContent);
+                showToast('warning', 'Note', 'Document generated but auto-save failed. Use Save button.');
+            }
+        } else {
+            // Regular AI response (not a document)
+            showRegularAIResponse(messagesContainer, response, aiContent);
         }
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
     } catch (error) {
         document.getElementById(typingId)?.remove();
         showToast('error', 'Error', 'Failed to send message: ' + error.message);
     }
+}
+
+function showRegularAIResponse(container, response, aiContent) {
+    const formattedContent = formatAIResponse(aiContent);
+    container.innerHTML += `
+        <div class="message ai-message animate-fadeIn">
+            <div class="message-wrapper">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <strong>GOLEXAI</strong>
+                    <div class="formatted-text">${formattedContent}</div>
+                    <div class="message-actions">
+                        <button class="message-action-btn copy-btn" onclick="copyToClipboard(this)">
+                            <i class="fas fa-copy"></i> ${t('chatbot.copy')}
+                        </button>
+                        <button class="message-action-btn" onclick="regenerateResponse()">
+                            <i class="fas fa-redo"></i> ${t('chatbot.regenerate')}
+                        </button>
+                        <button class="message-action-btn" onclick="saveAsDocument('${response.message.id}', this)">
+                            <i class="fas fa-file-alt"></i> Save as Document
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function detectDocumentGeneration(userMessage, aiResponse) {
+    // Keywords in user message that indicate document generation request
+    const documentKeywords = [
+        'generate', 'create', 'draft', 'write', 'prepare', 'make',
+        'wygeneruj', 'stwórz', 'napisz', 'przygotuj', 'sporządź'
+    ];
+    
+    const documentTypes = [
+        'contract', 'agreement', 'umowa', 'kontrakt',
+        'letter', 'list', 'pismo',
+        'will', 'testament',
+        'document', 'dokument',
+        'lease', 'najem', 'dzierżawa',
+        'nda', 'confidentiality', 'poufność',
+        'employment', 'zatrudnienie', 'praca',
+        'power of attorney', 'pełnomocnictwo',
+        'invoice', 'faktura',
+        'complaint', 'skarga', 'pozew',
+        'motion', 'wniosek',
+        'policy', 'regulamin',
+        'terms', 'warunki'
+    ];
+    
+    const lowerMessage = userMessage.toLowerCase();
+    const lowerResponse = aiResponse.toLowerCase();
+    
+    // Check if user asked to generate a document
+    const hasDocKeyword = documentKeywords.some(kw => lowerMessage.includes(kw));
+    const hasDocType = documentTypes.some(dt => lowerMessage.includes(dt));
+    
+    // Check if response looks like a document (has structure)
+    const hasDocumentStructure = 
+        (aiResponse.includes('**') && aiResponse.split('**').length > 4) || // Has multiple bold headers
+        (aiResponse.includes('§') || aiResponse.includes('Article') || aiResponse.includes('Artykuł')) ||
+        (aiResponse.match(/\d+\.\s/g)?.length > 3) || // Has numbered sections
+        (lowerResponse.includes('parties') && lowerResponse.includes('agreement')) ||
+        (lowerResponse.includes('strony') && lowerResponse.includes('umow'));
+    
+    return (hasDocKeyword && hasDocType) || (hasDocType && hasDocumentStructure);
+}
+
+function extractDocumentTitle(userMessage, aiContent) {
+    // Try to extract title from first bold header in content
+    const boldMatch = aiContent.match(/\*\*([^*]+)\*\*/);
+    if (boldMatch && boldMatch[1].length < 100) {
+        return boldMatch[1].trim();
+    }
+    
+    // Try to extract from user message
+    const typePatterns = [
+        /(?:generate|create|draft|write|prepare|make|wygeneruj|stwórz|napisz)\s+(?:a\s+)?(?:an\s+)?(.+?)(?:\s+for|\s+between|\s+regarding|$)/i
+    ];
+    
+    for (const pattern of typePatterns) {
+        const match = userMessage.match(pattern);
+        if (match && match[1]) {
+            const title = match[1].trim();
+            if (title.length > 3 && title.length < 100) {
+                return title.charAt(0).toUpperCase() + title.slice(1);
+            }
+        }
+    }
+    
+    // Default title with timestamp
+    const now = new Date();
+    return `Generated Document ${now.toLocaleDateString()}`;
 }
 
 function formatAIResponse(content) {
@@ -1249,7 +1385,17 @@ function formatAIResponse(content) {
 }
 
 function copyToClipboard(btn) {
-    const content = btn.closest('.message-content').querySelector('.formatted-text').innerText;
+    // Check if content is in data attribute (for document preview widget)
+    let content = btn.dataset.content;
+    
+    // Otherwise get from formatted text
+    if (!content) {
+        const messageContent = btn.closest('.message-content');
+        const formattedText = messageContent?.querySelector('.formatted-text');
+        const previewContent = messageContent?.querySelector('.doc-preview-content');
+        content = formattedText?.innerText || previewContent?.innerText || '';
+    }
+    
     navigator.clipboard.writeText(content).then(() => {
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
@@ -1268,23 +1414,28 @@ function regenerateResponse() {
     }
 }
 
-async function saveAsDocument(messageId, content) {
+async function saveAsDocument(messageId, btnElement) {
+    // Get content from the message
+    const messageContent = btnElement.closest('.message-content');
+    const formattedText = messageContent.querySelector('.formatted-text');
+    const content = formattedText ? formattedText.innerText : '';
+    
+    if (!content) {
+        showToast('error', 'Error', 'No content to save');
+        return;
+    }
+    
     // Create a modal to save the document
     const title = prompt('Enter document title:');
     if (!title) return;
     
     try {
-        const response = await API.generateDocument(content, title, 'docx');
+        const caseId = currentConversationCaseId || document.getElementById('chat-case-selector')?.value;
+        const response = await API.generateDocument(content, title, 'docx', caseId);
+        
         if (response.document) {
             showToast('success', 'Document Saved', `"${title}" has been saved to your documents`);
             await loadDocuments();
-            
-            // Ask if they want to assign to a case
-            const selectedCase = document.getElementById('chat-case-selector')?.value;
-            if (selectedCase && confirm('Add this document to the assigned case?')) {
-                await API.updateDocument(response.document.id, { case: selectedCase });
-                showToast('success', 'Added to Case', 'Document added to case');
-            }
         }
     } catch (error) {
         showToast('error', 'Error', 'Failed to save document: ' + error.message);
