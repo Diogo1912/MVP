@@ -311,26 +311,103 @@ class RegenerateView(APIView):
 
 
 class GenerateDocumentView(APIView):
-    """Generate a document from AI content"""
+    """Generate a document from AI content and create actual DOCX file"""
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
         content = request.data.get('content', '')
         title = request.data.get('title', 'AI Generated Document')
         document_type = request.data.get('type', 'docx')
+        case_id = request.data.get('case_id')
         
         if not content:
             return Response({'error': 'Content is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Create a document record
+            from docx import Document as DocxDocument
+            from docx.shared import Pt, Inches
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from django.core.files.base import ContentFile
+            import io
+            import re
+            
+            # Create a professional DOCX document
+            doc = DocxDocument()
+            
+            # Set document title
+            heading = doc.add_heading(title, 0)
+            heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Add date
+            from datetime import datetime
+            date_para = doc.add_paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y')}")
+            date_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            
+            doc.add_paragraph()  # Spacer
+            
+            # Process content - handle markdown-like formatting
+            lines = content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    doc.add_paragraph()
+                    continue
+                
+                # Handle headers
+                if line.startswith('###'):
+                    doc.add_heading(line.replace('###', '').strip(), level=3)
+                elif line.startswith('##'):
+                    doc.add_heading(line.replace('##', '').strip(), level=2)
+                elif line.startswith('#'):
+                    doc.add_heading(line.replace('#', '').strip(), level=1)
+                elif line.startswith('**') and line.endswith('**'):
+                    # Bold section header
+                    para = doc.add_paragraph()
+                    run = para.add_run(line.replace('**', ''))
+                    run.bold = True
+                elif line.startswith('- ') or line.startswith('• '):
+                    # Bullet point
+                    doc.add_paragraph(line[2:], style='List Bullet')
+                elif re.match(r'^\d+\.', line):
+                    # Numbered list
+                    doc.add_paragraph(line, style='List Number')
+                else:
+                    # Regular paragraph
+                    para = doc.add_paragraph()
+                    # Handle inline bold
+                    parts = re.split(r'(\*\*.*?\*\*)', line)
+                    for part in parts:
+                        if part.startswith('**') and part.endswith('**'):
+                            run = para.add_run(part[2:-2])
+                            run.bold = True
+                        else:
+                            para.add_run(part)
+            
+            # Save to buffer
+            buffer = io.BytesIO()
+            doc.save(buffer)
+            buffer.seek(0)
+            
+            # Create filename
+            safe_title = re.sub(r'[^\w\s-]', '', title).strip().replace(' ', '_')[:50]
+            filename = f"{safe_title}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+            
+            # Create document record with actual file
             document = Document.objects.create(
                 user=request.user,
                 title=title,
                 file_type='ai_generated',
                 content_text=content,
-                is_ai_generated=True
+                is_ai_generated=True,
+                original_filename=filename,
+                mime_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                case_id=case_id if case_id else None
             )
+            
+            # Save the DOCX file
+            document.file.save(filename, ContentFile(buffer.getvalue()))
+            document.file_size = len(buffer.getvalue())
+            document.save()
             
             # Track usage
             UsageMetric.objects.create(
@@ -346,6 +423,7 @@ class GenerateDocumentView(APIView):
             })
             
         except Exception as e:
+            logger.error(f"Document generation error: {str(e)}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

@@ -221,12 +221,38 @@ class API {
     }
     
     // Analytics
-    static async getAnalytics() {
-        return this.request('/analytics/');
+    static async getAnalytics(range = '30d') {
+        return this.request(`/analytics/?range=${range}`);
     }
     
     static async getAuditLogs() {
         return this.request('/analytics/audit-logs/');
+    }
+    
+    static async exportReport(format = 'csv', range = '30d') {
+        const url = `${API_BASE_URL}/analytics/export/?format=${format}&range=${range}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+            },
+        });
+        
+        if (!response.ok) {
+            throw new Error('Export failed');
+        }
+        
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `golexai_report.${format}`;
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+    }
+    
+    // Document preview
+    static async getDocumentPreview(documentId) {
+        return this.request(`/documents/${documentId}/preview/`);
     }
     
     // User profile

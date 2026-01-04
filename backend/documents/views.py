@@ -150,7 +150,56 @@ class DocumentViewSet(viewsets.ModelViewSet):
         """Download document file"""
         document = self.get_object()
         
+        # For AI-generated documents without file, export to DOCX
         if not document.file:
+            if document.content_text:
+                # Generate DOCX from content
+                try:
+                    from docx import Document as DocxDocument
+                    from docx.shared import Pt
+                    from docx.enum.text import WD_ALIGN_PARAGRAPH
+                    import re
+                    
+                    doc = DocxDocument()
+                    doc.add_heading(document.title, 0)
+                    
+                    # Process content
+                    for para in document.content_text.split('\n'):
+                        para = para.strip()
+                        if para:
+                            if para.startswith('**') and para.endswith('**'):
+                                p = doc.add_paragraph()
+                                run = p.add_run(para.replace('**', ''))
+                                run.bold = True
+                            elif para.startswith('- ') or para.startswith('• '):
+                                doc.add_paragraph(para[2:], style='List Bullet')
+                            else:
+                                doc.add_paragraph(para)
+                    
+                    buffer = io.BytesIO()
+                    doc.save(buffer)
+                    buffer.seek(0)
+                    
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='document_access',
+                        resource_type='document',
+                        resource_id=document.id,
+                        metadata={'action': 'download_generated'}
+                    )
+                    
+                    response = HttpResponse(
+                        buffer.getvalue(),
+                        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    )
+                    safe_title = re.sub(r'[^\w\s-]', '', document.title).strip().replace(' ', '_')[:50]
+                    response['Content-Disposition'] = f'attachment; filename="{safe_title}.docx"'
+                    return response
+                except Exception as e:
+                    return Response(
+                        {'error': f'Failed to generate document: {str(e)}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
             return Response(
                 {'error': 'Document has no file attached'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -164,9 +213,28 @@ class DocumentViewSet(viewsets.ModelViewSet):
             metadata={'action': 'download'}
         )
         
-        response = HttpResponse(document.file.read(), content_type=document.mime_type or 'application/octet-stream')
-        response['Content-Disposition'] = f'attachment; filename="{document.original_filename or document.title}"'
-        return response
+        # Read file properly
+        try:
+            document.file.seek(0)
+            file_content = document.file.read()
+            
+            mime_type = document.mime_type or 'application/octet-stream'
+            if document.original_filename:
+                if document.original_filename.endswith('.pdf'):
+                    mime_type = 'application/pdf'
+                elif document.original_filename.endswith('.docx'):
+                    mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            
+            response = HttpResponse(file_content, content_type=mime_type)
+            filename = document.original_filename or f"{document.title}.docx"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Content-Length'] = len(file_content)
+            return response
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to read file: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['get', 'post'])
     def export_to_docx(self, request, pk=None):
@@ -271,3 +339,31 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
         
         return super().destroy(request, *args, **kwargs)
+    
+    @action(detail=True, methods=['get'])
+    def preview(self, request, pk=None):
+        """Get document content for preview"""
+        document = self.get_object()
+        
+        AuditLog.objects.create(
+            user=request.user,
+            action='document_access',
+            resource_type='document',
+            resource_id=document.id,
+            metadata={'action': 'preview'}
+        )
+        
+        return Response({
+            'id': document.id,
+            'title': document.title,
+            'content': document.content_text or '',
+            'analysis': document.analysis or '',
+            'is_ai_generated': document.is_ai_generated,
+            'file_type': document.file_type,
+            'original_filename': document.original_filename,
+            'created_at': document.created_at.isoformat(),
+            'updated_at': document.updated_at.isoformat(),
+            'priority': document.priority,
+            'status': document.status,
+            'tags': document.tags,
+        })

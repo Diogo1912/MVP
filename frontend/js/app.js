@@ -3,6 +3,9 @@ let currentConversationId = null;
 let currentPersona = localStorage.getItem('ai_persona') || 'commercial';
 let currentConversationCaseId = null; // Track case per conversation
 let currentEditingDocumentId = null;
+let currentEditingCaseId = null;
+let currentPreviewDocumentId = null;
+let currentAnalyticsRange = '7d';
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
@@ -345,6 +348,83 @@ function setupEventListeners() {
     document.getElementById('inline-attach-btn')?.addEventListener('click', () => {
         document.getElementById('file-input').click();
     });
+    
+    // User dropdown
+    document.getElementById('profile-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = document.getElementById('user-dropdown');
+        dropdown.classList.toggle('active');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('user-dropdown');
+        if (dropdown && !e.target.closest('.user-dropdown-container')) {
+            dropdown.classList.remove('active');
+        }
+        
+        // Also close export menu
+        const exportMenu = document.getElementById('export-menu');
+        if (exportMenu && !e.target.closest('.export-dropdown')) {
+            exportMenu.classList.remove('active');
+        }
+    });
+    
+    // Dropdown menu items
+    document.querySelectorAll('.dropdown-item[data-section]').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = e.currentTarget.dataset.section;
+            showSection(section);
+            document.getElementById('user-dropdown').classList.remove('active');
+            
+            // If going to specific settings tab
+            const settingsTab = e.currentTarget.dataset.settingsTab;
+            if (settingsTab) {
+                setTimeout(() => {
+                    document.querySelector(`.settings-nav-item[data-settings="${settingsTab}"]`)?.click();
+                }, 100);
+            }
+        });
+    });
+    
+    // Dropdown logout
+    document.getElementById('dropdown-logout-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        API.clearToken();
+        showLogin();
+        showToast('success', 'Logged Out', 'You have been signed out');
+    });
+    
+    // Analytics date range buttons
+    document.querySelectorAll('.date-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentAnalyticsRange = btn.dataset.range;
+            loadAnalytics();
+        });
+    });
+    
+    // Export report button
+    document.getElementById('export-report-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('export-menu').classList.toggle('active');
+    });
+    
+    // Export options
+    document.querySelectorAll('.export-option').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const format = btn.dataset.format;
+            try {
+                await API.exportReport(format, currentAnalyticsRange);
+                showToast('success', 'Export Complete', `Report exported as ${format.toUpperCase()}`);
+            } catch (error) {
+                showToast('error', 'Export Failed', error.message);
+            }
+            document.getElementById('export-menu').classList.remove('active');
+        });
+    });
 }
 
 // =================== MODALS ===================
@@ -437,6 +517,55 @@ function setupModals() {
             showToast('error', t('common.error'), error.message);
         }
     });
+    
+    // Edit case confirm
+    document.getElementById('confirm-edit-case')?.addEventListener('click', async () => {
+        if (!currentEditingCaseId) return;
+        
+        const title = document.getElementById('edit-case-title').value;
+        const description = document.getElementById('edit-case-description').value;
+        const priority = document.getElementById('edit-case-priority').value;
+        const status = document.getElementById('edit-case-status').value;
+        
+        try {
+            await API.updateCase(currentEditingCaseId, { title, description, priority, status });
+            closeModal('edit-case-modal');
+            showToast('success', 'Success', 'Case updated successfully');
+            loadDocuments();
+            closeCasePanel();
+        } catch (error) {
+            showToast('error', 'Error', error.message);
+        }
+    });
+    
+    // Delete case button
+    document.getElementById('delete-case-btn')?.addEventListener('click', async () => {
+        if (!currentEditingCaseId) return;
+        
+        if (confirm('Are you sure you want to delete this case? This cannot be undone.')) {
+            try {
+                await API.deleteCase(currentEditingCaseId);
+                closeModal('edit-case-modal');
+                showToast('success', 'Success', 'Case deleted successfully');
+                loadDocuments();
+                closeCasePanel();
+            } catch (error) {
+                showToast('error', 'Error', error.message);
+            }
+        }
+    });
+    
+    // Close preview modal
+    document.getElementById('close-preview-btn')?.addEventListener('click', () => {
+        closeModal('preview-document-modal');
+    });
+    
+    // Download from preview
+    document.getElementById('download-preview-btn')?.addEventListener('click', () => {
+        if (currentPreviewDocumentId) {
+            API.downloadDocument(currentPreviewDocumentId);
+        }
+    });
 }
 
 function openModal(modalId) {
@@ -485,7 +614,7 @@ function showSection(sectionName) {
 async function loadDashboardData() {
     try {
         // Load overview stats
-        const analytics = await API.getAnalytics();
+        const analytics = await API.getAnalytics(currentAnalyticsRange);
         if (analytics) {
             const statDocs = document.getElementById('stat-documents');
             const statCases = document.getElementById('stat-cases');
@@ -495,7 +624,10 @@ async function loadDashboardData() {
             if (statDocs) statDocs.textContent = analytics.documents?.total || 0;
             if (statCases) statCases.textContent = analytics.cases?.active || 0;
             if (statQueries) statQueries.textContent = analytics.ai_usage?.queries || 0;
-            if (statProductivity) statProductivity.textContent = analytics.documents?.this_month || 0;
+            if (statProductivity) statProductivity.textContent = analytics.documents?.in_range || 0;
+            
+            // Update analytics page metrics
+            updateAnalyticsPage(analytics);
         }
         
         // Load recent activity
@@ -515,6 +647,103 @@ async function loadDashboardData() {
         if (error.message?.includes('Authentication') || error.message?.includes('401')) {
             API.clearToken();
             showLogin();
+        }
+    }
+}
+
+async function loadAnalytics() {
+    try {
+        const analytics = await API.getAnalytics(currentAnalyticsRange);
+        updateAnalyticsPage(analytics);
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+    }
+}
+
+function updateAnalyticsPage(analytics) {
+    if (!analytics) return;
+    
+    // Update metric cards
+    const metricDocs = document.getElementById('metric-documents');
+    const metricQueries = document.getElementById('metric-queries');
+    const metricTime = document.getElementById('metric-time');
+    const metricCompleted = document.getElementById('metric-completed');
+    
+    if (metricDocs) metricDocs.textContent = analytics.documents?.total || 0;
+    if (metricQueries) metricQueries.textContent = analytics.ai_usage?.queries || 0;
+    if (metricTime) metricTime.textContent = `${analytics.time_saved?.hours || 0}h`;
+    if (metricCompleted) metricCompleted.textContent = analytics.cases?.by_status?.closed || 0;
+    
+    // Update donut chart total
+    const donutTotal = document.getElementById('donut-total');
+    if (donutTotal) {
+        donutTotal.textContent = (analytics.ai_usage?.queries || 0) + 
+            (analytics.ai_usage?.documents_analyzed || 0) + 
+            (analytics.ai_usage?.documents_generated || 0);
+    }
+    
+    // Update case status bars
+    const statusOpen = document.getElementById('status-open');
+    const statusProgress = document.getElementById('status-progress');
+    const statusCompleted = document.getElementById('status-completed');
+    
+    const totalCases = analytics.cases?.total || 1;
+    const openCount = analytics.cases?.by_status?.open || 0;
+    const progressCount = analytics.cases?.by_status?.in_progress || 0;
+    const closedCount = analytics.cases?.by_status?.closed || 0;
+    
+    if (statusOpen) statusOpen.textContent = openCount;
+    if (statusProgress) statusProgress.textContent = progressCount;
+    if (statusCompleted) statusCompleted.textContent = closedCount;
+    
+    // Update bars
+    document.querySelectorAll('.status-bar-fill.open').forEach(bar => {
+        bar.style.width = `${(openCount / Math.max(totalCases, 1)) * 100}%`;
+    });
+    document.querySelectorAll('.status-bar-fill.progress').forEach(bar => {
+        bar.style.width = `${(progressCount / Math.max(totalCases, 1)) * 100}%`;
+    });
+    document.querySelectorAll('.status-bar-fill.completed').forEach(bar => {
+        bar.style.width = `${(closedCount / Math.max(totalCases, 1)) * 100}%`;
+    });
+    
+    // Update document types
+    const typePdf = document.getElementById('type-pdf');
+    const typeDocx = document.getElementById('type-docx');
+    const typeAi = document.getElementById('type-ai');
+    
+    if (typePdf) typePdf.textContent = `${analytics.documents?.pdf_count || 0} files`;
+    if (typeDocx) typeDocx.textContent = `${analytics.documents?.docx_count || 0} files`;
+    if (typeAi) typeAi.textContent = `${analytics.documents?.ai_generated || 0} files`;
+    
+    // Update document type bars
+    const totalDocs = analytics.documents?.total || 1;
+    document.querySelectorAll('.doc-type-item').forEach((item, i) => {
+        const fill = item.querySelector('.doc-type-fill');
+        if (fill) {
+            if (i === 0) fill.style.width = `${((analytics.documents?.pdf_count || 0) / totalDocs) * 100}%`;
+            if (i === 1) fill.style.width = `${((analytics.documents?.docx_count || 0) / totalDocs) * 100}%`;
+            if (i === 2) fill.style.width = `${((analytics.documents?.ai_generated || 0) / totalDocs) * 100}%`;
+        }
+    });
+    
+    // Update analytics activity feed
+    const activityFeed = document.getElementById('analytics-activity');
+    if (activityFeed && analytics.recent_activity) {
+        if (analytics.recent_activity.length === 0) {
+            activityFeed.innerHTML = '<p class="empty-state"><i class="fas fa-inbox"></i> Nothing to show</p>';
+        } else {
+            activityFeed.innerHTML = analytics.recent_activity.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon ${activity.type}">
+                        <i class="fas fa-${activity.type === 'document' ? 'file-alt' : 'briefcase'}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">${activity.action}: ${escapeHtml(activity.title)}</div>
+                        <div class="activity-time">${formatDate(activity.time)}</div>
+                    </div>
+                </div>
+            `).join('');
         }
     }
 }
@@ -706,6 +935,9 @@ function createDocumentCard(doc) {
                     </div>
                 </div>
                 <div class="document-actions">
+                    <button class="btn btn-sm btn-outline preview-btn" data-id="${doc.id}" title="Preview">
+                        <i class="fas fa-eye"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline analyze-btn" data-id="${doc.id}" title="${t('documents.analyze')}">
                         <i class="fas fa-brain"></i>
                     </button>
@@ -776,9 +1008,18 @@ function setupDocumentCardEvents() {
         });
     });
     
+    // Preview
+    document.querySelectorAll('.preview-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            previewDocument(btn.dataset.id);
+        });
+    });
+    
     // Analyze
     document.querySelectorAll('.analyze-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
             const id = btn.dataset.id;
             try {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -1104,12 +1345,77 @@ async function openCasePanel(caseId) {
         document.getElementById('case-panel-status').textContent = caseData.status.replace('_', ' ');
         document.getElementById('case-panel-status').className = `badge badge-${caseData.status}`;
         
+        // Store case data for editing
+        panel.dataset.caseData = JSON.stringify(caseData);
+        
         // Load documents for this case
         await loadCaseDocuments(caseId);
         
         panel.classList.add('active');
     } catch (error) {
         showToast('error', 'Error', 'Failed to load case details');
+    }
+}
+
+function openEditCaseModal() {
+    if (!currentCaseId) return;
+    
+    const panel = document.getElementById('case-details-panel');
+    const caseData = JSON.parse(panel.dataset.caseData || '{}');
+    
+    currentEditingCaseId = currentCaseId;
+    
+    document.getElementById('edit-case-title').value = caseData.title || '';
+    document.getElementById('edit-case-description').value = caseData.description || '';
+    document.getElementById('edit-case-priority').value = caseData.priority || 'medium';
+    document.getElementById('edit-case-status').value = caseData.status || 'open';
+    
+    openModal('edit-case-modal');
+}
+
+async function previewDocument(documentId) {
+    currentPreviewDocumentId = documentId;
+    
+    try {
+        const preview = await API.getDocumentPreview(documentId);
+        
+        document.getElementById('preview-doc-title').textContent = preview.title || 'Document';
+        
+        const meta = document.getElementById('preview-doc-meta');
+        meta.innerHTML = `
+            <div class="preview-meta-item">
+                <span class="meta-label">Created:</span>
+                <span class="meta-value">${formatDate(preview.created_at)}</span>
+            </div>
+            <div class="preview-meta-item">
+                <span class="meta-label">Type:</span>
+                <span class="meta-value">${preview.is_ai_generated ? 'AI Generated' : preview.file_type || 'Document'}</span>
+            </div>
+            <div class="preview-meta-item">
+                <span class="meta-label">Status:</span>
+                <span class="badge badge-${preview.status}">${preview.status}</span>
+            </div>
+            <div class="preview-meta-item">
+                <span class="meta-label">Priority:</span>
+                <span class="badge badge-${preview.priority}">${preview.priority}</span>
+            </div>
+        `;
+        
+        const content = document.getElementById('preview-doc-content');
+        if (preview.content) {
+            content.innerHTML = `<div class="preview-text">${formatAIResponse(preview.content)}</div>`;
+        } else if (preview.analysis) {
+            content.innerHTML = `
+                <h4>Analysis</h4>
+                <div class="preview-text">${formatAIResponse(preview.analysis)}</div>
+            `;
+        } else {
+            content.innerHTML = '<p class="empty-state">No content available for preview. Download to view the file.</p>';
+        }
+        
+        openModal('preview-document-modal');
+    } catch (error) {
+        showToast('error', 'Error', 'Failed to load document preview');
     }
 }
 
